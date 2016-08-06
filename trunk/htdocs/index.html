@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
+  <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <script type="text/javascript" src="GlobalVariables.js"></script>
+  <script type="text/javascript" src="Processor.js"></script>
+  <script type="text/javascript" src="Ajax.js"></script>
+  <script type="text/javascript" src="UseFullFunctions.js"></script>
+
+  <script src="prog.js"></script>  
+  <script src="relay.js"></script>  
+  <script src="html.js"></script>
+  <script src="sliders.js"></script>
+
+
+</head>
+<body>
+
+<div id="tabs">
+  <ul>
+    <li><a href="#tabs-1">Programok</a></li>
+    <li><a href="#tabs-2">Relék</a></li>
+  </ul>
+  <div id="tabs-1">
+	<div id="new_relay" style="width:260px; margin:15px;">
+	    Új rel:
+	    <input id="new_relay_name" size = "10" >
+	</div>
+	<div id="new_program" style="width:260px; margin:15px;">
+	    Új prog:
+	    <input id="new_program_name" size = "10" >
+	</div>
+    <div id="lists">
+	</div> 
+	
+	<div id="toolbar" style="display: none;">
+	  <button id="play">play</button>
+	  <button id="stop">stop</button>
+	</div>
+	<input id="repetition_time" type="input" name="repetition_time" style="display: none;">
+	<input id="program_name"    type="input" name="program_name" style="display: none;">
+	<img id="save_prog_data"    src="img/save.png"  style="display: none;" onclick = "save_program();" >
+	<div id="actual_program"   style="width:600px; margin:15px;">
+	</div>
+  </div>
+  <div id="tabs-2">
+	<div id="manual_control" style="width:300px; margin:15px;">
+       <table border="1" id="on_off">
+       </table>
+	</div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+  <script> 
+    init_page();
+    update_method();
+    $(function() {
+      $( "#tabs" ).tabs();
+    });
+  </script>
+</html>
