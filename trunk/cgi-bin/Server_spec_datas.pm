@@ -9,7 +9,7 @@ use Cfg;
 use Carp;
 use Exporter 'import';
 use Data::Dumper ;
-use constant RELAY      => 'd:\\XAMPP_2\\cgi-bin\\ontozo\\relay.cfg'  ;
+use constant RELAY      => 'relay.cfg'  ;
 use Time::HiRes qw(time);
 @EXPORT_OK = qw( $DB $SERVER_DFG $DBH SESS_REQED SEL_CSET INS_CSET $LOG $VIEWS GET_FUNC_NAME START STOP INS_COLLAT );
 

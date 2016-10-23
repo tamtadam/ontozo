@@ -8,6 +8,10 @@ use Data::Dumper;
 use Sys::Hostname;
 use POSIX;
 use Carp;
+use IO::Socket::Timeout;
+
+$| = 1; # flush after every wright
+
 sub new {
    my $instance = shift;
    my $class    = ref $instance || $instance;
@@ -35,6 +39,9 @@ sub connect{
       				   Proto    => 'tcp') or print "CONNECTION ERROR: $cnt\n";
        $cnt++;
    }
+   IO::Socket::Timeout->enable_timeouts_on( $self->{'socket_m'} );
+   $self->{'socket_m'}->read_timeout(2);
+   $self->{'socket_m'}->write_timeout(2);
    return $self->{'socket_m'};
 }
 
@@ -42,7 +49,7 @@ sub send_msg{
     my $self = shift;
     my $msg  = shift;
     my $without_recv = shift ;
-    my $rv  = $self->{'socket_m' }->send ( "$msg\r\n", 0 );	   
+    my $rv  = $self->{'socket_m' }->send ( "$msg\r\n", 1 );	   
     #if ( !defined $rv or $rv == 0 or $rv == -1 ){
         #$self->connect() ;
         #return undef ; # trigger reconnect
@@ -59,6 +66,7 @@ sub my_recv{
 }
 sub my_close {
 	my $self = shift ;
+	shutdown( $self->{ 'socket_m' }, 2);
 	close $self->{ 'socket_m' } ;
 }
 

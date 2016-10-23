@@ -1,7 +1,7 @@
 package prog_relay;
 use strict;
 use Data::Dumper;
-use Error;
+use Errormsg;
 use Log  ;
 use DBH  ;
 use relay_utils ;
@@ -11,7 +11,7 @@ use run_status  qw(run_status);
 use Carp;
 our $VERSION = '0.02';
 use OBJECTS;
-our @ISA = qw( Error Log DBH relay_utils OBJECTS run_status ) ;
+our @ISA = qw( Errormsg Log DBH relay_utils OBJECTS run_status ) ;
 
 # RUN_STATUS-> hulyeseg, ki kell szervezni az objektum alol
 sub new {

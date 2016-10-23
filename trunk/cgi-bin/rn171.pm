@@ -52,6 +52,7 @@ Readonly::Hash my %hash => (
     RELAY6OFF     => "t",
     RELAY7OFF     => "u",
     RELAY8OFF     => "v",
+
 );
 
 INIT {
@@ -70,27 +71,49 @@ sub _ping {
 
 sub send_command_to_relay {
     my $relay_hr = shift;
-    
+    my $req_func = shift;
     my $wifly = get_connection( $relay_hr );
     unless ( $wifly ) {
         print "No connection: " . $relay_hr->NAME . "\n" and return undef ;
     }
 
-    my $func = $relay_hr->POS;
+    my $func = $req_func || $relay_hr->POS;
 
-    if( $relay_hr->RUN_STATUS_ID() == run_status->RUNNING() ) {
-        $func .= "ON";
-    }
-    elsif( $relay_hr->RUN_STATUS_ID() == run_status->STOPPED() ) {
-        $func .= "OFF";
-    }
-
-    print "$func:" . $rn171->$func . "\n";
-    unless ( $wifly->send_msg($rn171->$func) ) {
-        delete_connection( $relay_hr );
-        $relay_hr->update_connected( 0 );
+    unless( $req_func ) {
+        if( $relay_hr->RUN_STATUS_ID() == run_status->RUNNING() ) {
+            $func .= "ON";
+        }
+        elsif( $relay_hr->RUN_STATUS_ID() == run_status->STOPPED() ) {
+            $func .= "OFF";
+        }
+        print "$func:" . $rn171->$func . "\n";
+        unless ( $wifly->send_msg($rn171->$func) ) {
+            delete_connection( $relay_hr );
+            $relay_hr->update_connected( 0 );
+        }
+    } else {
+    
+    
     }
 }
+
+sub show_rssi {
+    my $relay_hr = shift;
+    my $wifly = get_connection( $relay_hr );
+    print $wifly ->my_recv();
+    $wifly->send_msg( '$$$' ) ;
+    print $wifly ->my_recv(); 
+    $wifly->send_msg( "" ) ;
+    print $wifly ->my_recv(); 
+    
+    $wifly ->send_msg( "show rssi\n" ) ;
+    print "show rssi\n";
+    my $res = $wifly ->my_recv() . "\n"; 
+    $wifly->send_msg( "exit\n" );
+    print $wifly ->my_recv();
+    return $res;
+}
+
 
 sub delete_connection {
     my $relay_hr = shift;
@@ -107,15 +130,19 @@ sub get_connection {
     unless ( exists $active_connections->{ $relay_hr->IP } ) {
         if( _ping( $relay_hr ) ) {
             print "CONNECT to relay\n";
+            print "\tip: " . $relay_hr->IP . "\n";
+            print "\tport: " . ( $relay_hr->PORT || 2000 )  . "\n";
             $active_connections->{ $relay_hr->IP } = client_tcp->new({
                                                             'host' => $relay_hr->IP ,
-                                                            'port' => 2000          ,
+                                                            'port' => $relay_hr->PORT || 2000 ,
             });
             sleep(5);
             $active_connections->{ $relay_hr->IP }->connect();
             print "Wait for start\n";
             sleep(10);
-
+            print $active_connections->{ $relay_hr->IP } ->my_recv() . "\n";
+            print "MANUAL:" . $rn171->MANUAL . "\n";
+            print "ALLRELAYOFF:" . $rn171->ALLRELAYOFF . "\n";
             $active_connections->{ $relay_hr->IP }->send_msg( $rn171->MANUAL );
             $active_connections->{ $relay_hr->IP }->send_msg( $rn171->ALLRELAYOFF );
             return $active_connections->{ $relay_hr->IP } ;
@@ -136,7 +163,7 @@ sub STOPCONNECTIONS {
         print "IP:" . $conn_id . " ALLRELAYOFF\n";
         $active_connections->{ $conn_id }->send_msg($rn171->ALLRELAYOFF);
         $active_connections->{ $conn_id }->send_msg($rn171->AUTO);
-        sleep(1);
+        sleep(4);
         $active_connections->{ $conn_id }->my_close();
     }
 }
