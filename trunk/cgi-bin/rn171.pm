@@ -52,6 +52,8 @@ Readonly::Hash my %hash => (
     RELAY6OFF     => "t",
     RELAY7OFF     => "u",
     RELAY8OFF     => "v",
+    
+    CLOSE         => "close",
 
 );
 
@@ -100,17 +102,11 @@ sub send_command_to_relay {
 sub show_rssi {
     my $relay_hr = shift;
     my $wifly = get_connection( $relay_hr );
-    print $wifly ->my_recv();
     $wifly->send_msg( '$$$' ) ;
-    print $wifly ->my_recv(); 
-    $wifly->send_msg( "" ) ;
-    print $wifly ->my_recv(); 
     
-    $wifly ->send_msg( "show rssi\n" ) ;
-    print "show rssi\n";
-    my $res = $wifly ->my_recv() . "\n"; 
-    $wifly->send_msg( "exit\n" );
-    print $wifly ->my_recv();
+    $wifly->send_msg( "show rssi" ) ;
+    $wifly->send_msg( "exit" );
+    my $res = $wifly ->my_recv();
     return $res;
 }
 
@@ -133,8 +129,10 @@ sub get_connection {
             print "\tip: " . $relay_hr->IP . "\n";
             print "\tport: " . ( $relay_hr->PORT || 2000 )  . "\n";
             $active_connections->{ $relay_hr->IP } = client_tcp->new({
-                                                            'host' => $relay_hr->IP ,
-                                                            'port' => $relay_hr->PORT || 2000 ,
+                                                            'host'          => $relay_hr->IP ,
+                                                            'port'          => $relay_hr->PORT || 2000 ,
+                                                            'autoconn'      => $relay_hr->AUTOCONN ,
+                                                            'connect_retry' => $relay_hr->CONNECT_RETRY // 600 ,
             });
             sleep(5);
             $active_connections->{ $relay_hr->IP }->connect();
@@ -163,6 +161,7 @@ sub STOPCONNECTIONS {
         print "IP:" . $conn_id . " ALLRELAYOFF\n";
         $active_connections->{ $conn_id }->send_msg($rn171->ALLRELAYOFF);
         $active_connections->{ $conn_id }->send_msg($rn171->AUTO);
+        $active_connections->{ $conn_id }->send_msg($rn171->CLOSE);
         sleep(4);
         $active_connections->{ $conn_id }->my_close();
     }

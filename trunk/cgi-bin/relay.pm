@@ -44,7 +44,9 @@ sub init {
         $self->read_data_to_from_db_to_obj( $relay_params );
     } else {
         $self->add_autoload_method( 'IP', $relay_params->{ip} );
-        $self->add_autoload_method( 'PORT', $relay_params->{port} || 2000 );
+        $self->add_autoload_method( 'PORT', $relay_params->{port} );
+        $self->add_autoload_method( 'CONNECT_RETRY', $relay_params->{connect_retry} );
+        $self->add_autoload_method( 'AUTOCONN', $relay_params->{autoconn} );
     }
 
     return $self;

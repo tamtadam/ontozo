@@ -29,6 +29,8 @@ $SIG{KILL} = sub {
 my $realy = relay->new({
     ip => '192.168.0.240',
     port => '2000',
+    autoconn => 1,
+    connect_retry => 100,
 
 });
 
