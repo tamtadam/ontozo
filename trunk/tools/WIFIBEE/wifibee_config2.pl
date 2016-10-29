@@ -1,24 +1,28 @@
 #!C:/Perl/bin/perl.exe -w
 
-use client_tcp;
+
 use strict;
 use Data::Dumper; 
-use lib 'd:\\XAMPP_2\\cgi-bin\\ontozo\\' ;
+use FindBin;
+use lib $FindBin::RealBin;
+use lib $FindBin::RealBin . "/../../cgi-bin/";
+use lib "f:/GIT/common/cgi-bin/";
+use client_tcp;
 use Cfg;
 use Carp;
 use Controller_ajax;
 use Server_spec_datas; 
 use Log qw($LOG_ENABLED);
-my $relay_db = &Server_spec_datas::init( "relay" );
-my $controller = Controller_ajax->new( { 
-                                        'DB_HANDLE' => $relay_db ,
-                                        'MODEL'     => "ontozo_model",
-                                        'LOG_DIR'   => "d:\\XAMPP_2\\cgi-bin\\ontozo\\log\\",
-} );
+#my $relay_db = &Server_spec_datas::init( "relay" );
+#my $controller = Controller_ajax->new( { 
+#                                        'DB_HANDLE' => $relay_db ,
+#                                        'MODEL'     => "ontozo_model",
+#                                        'LOG_DIR'   => "d:\\XAMPP_2\\cgi-bin\\ontozo\\log\\",
+#} );
 $Log::LOG_ENABLED = 0;
 my $cfg = read_cfg(@ARGV);
 execute_commands( $cfg->{ 'COMMANDS' } );
-add_to_db($cfg);
+#add_to_db($cfg);
 
 
 sub read_cfg {
@@ -56,7 +60,7 @@ sub execute_commands {
         sleep( 2 ) ;       
     }
 }
-
+=pod
 sub add_to_db {
     my $relay_datas = shift // {};
 
@@ -98,3 +102,5 @@ sub get_relay_id {
         return undef;
     }
 }
+
+=cut

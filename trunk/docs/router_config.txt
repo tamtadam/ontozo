@@ -1,0 +1,20 @@
+It is possible to use a second router as a range extender to your existing network. It is also very possible to create only one network name between the two routers so your Bluesound Players and other network devices will connect to which ever router has the stronger signal.
+
+Many newer routers include WDS or Wireless Distributed Services to create multiple Access Points on a single network with a single name.
+
+If your existing routers do not support WDS you can manually create a WDS environment using these simple steps.
+
+Router 1
+
+Set up this router as normal. In the wireless security settings of the router, disable Automatic Channel selection and manually set the channel to channel 3.
+
+Router 2
+
+In most cases, this router must be wired to the original router. Consider a wireless media bridge or by running a single network cable in this case to the other location.
+
+Disable the DHCP server on this router to prevent IP conflicts or network configuration issues allowing only Router 1 to manage the network.
+Manually set the IP Address of this router to 1 number higher than the existing main router, for example if your router IP is 192.168.1.1, set this router to 192.168.1.2. Plese make sure this address is out of the 1st router's allotment of addresses for DHCP distribution. If not, please make a DHCP reservation for this router's address in the router 1's DHCP table.
+Set the Internet Gateway of router 2 to router 1's IP address.
+Connect the two routers using a wired connection from any of port 1-4 in router 1 to any of port 1-4 in router 2. You can use a Wireless Media Bridge or Powerline Ethernet Kit to create a wired connection. DO NOT use router 2's WAN port.
+In the wireless security settings of this router, disable Automatic Channel selection and manually set the channel to channel 8 - or any other channel not being used by the main router or any other router on this network (it is possible to set more than two routers for really large areas).
+Set up wireless security to be identical in router 2 as it is in router 1.

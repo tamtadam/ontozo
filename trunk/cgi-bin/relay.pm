@@ -2,7 +2,7 @@ package relay;
 use strict;
 use Data::Dumper;
 
-use Errormsg           ;
+use Errormsg        ;
 use Log             ;
 use DBH             ;
 use run_status      ;
@@ -28,20 +28,26 @@ sub init {
     my $self = shift;
     my $relay_params = shift;
     eval '$self->' . "$_" . '::init(@_)' for @ISA;
-    return $self unless $relay_params->{ "relay_id" } ;
-    my $relay_data = $self->my_select({
-        "select" => "ALL"  ,
-        "from"   => "relay",
-        "where"  => {
-            'relay_id' => $relay_params->{ "relay_id" } ,
-        }
-    });
-    return undef unless $relay_data ;
-    $relay_data->[ 0 ]->{ act_status_id } = -1;
-    $self->read_data_to_from_db_to_obj( $relay_data->[ 0 ] );
-    #remove program relevant values
-    delete $relay_params->{ $_ } for keys %{$relay_data->[ 0 ] };
-    $self->read_data_to_from_db_to_obj( $relay_params );
+    if ( $relay_params->{ "relay_id" } ) {
+        my $relay_data = $self->my_select({
+            "select" => "ALL"  ,
+            "from"   => "relay",
+            "where"  => {
+                'relay_id' => $relay_params->{ "relay_id" } ,
+            }
+        });
+        return undef unless $relay_data ;
+        $relay_data->[ 0 ]->{ act_status_id } = -1;
+        $self->read_data_to_from_db_to_obj( $relay_data->[ 0 ] );
+        #remove program relevant values
+        delete $relay_params->{ $_ } for keys %{$relay_data->[ 0 ] };
+        $self->read_data_to_from_db_to_obj( $relay_params );
+    } else {
+        $self->add_autoload_method( 'IP', $relay_params->{ip} );
+        $self->add_autoload_method( 'PORT', $relay_params->{port} );
+        $self->add_autoload_method( 'CONNECT_RETRY', $relay_params->{connect_retry} );
+        $self->add_autoload_method( 'AUTOCONN', $relay_params->{autoconn} );
+    }
 
     return $self;
 }
@@ -81,6 +87,11 @@ sub get_connections{
     }
     $self->start_time( @{ [ caller(0) ] }[3], $conn_relays ) ;
     return $conn_relays ;
+}
+
+sub show_rssi {
+    my $self = shift;
+    rn171::show_rssi( $self );
 }
 
 sub execute_command{
