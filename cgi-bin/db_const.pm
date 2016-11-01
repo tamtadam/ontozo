@@ -11,7 +11,7 @@ sub PAUSE{
             "string"   => "Passed"    ,
             "row_name" => "name",
             "row_id"   => "run_status_id"  ,
-            "table"    => $_[ 0 ]->{ "RUN_STATUS" } , 
+            "table"    => $_[ 0 ]->{ "RUN_STATUS" } ,
     }) ;
 }
 
@@ -20,15 +20,15 @@ sub STOPPED{
             "string"   => "Failed"    ,
             "row_name" => "name",
             "row_id"   => "run_status_id"  ,
-            "table"    => $_[ 0 ]->{ "RUN_STATUS" } , 
+            "table"    => $_[ 0 ]->{ "RUN_STATUS" } ,
     })
-    
+
 sub RUNNING{
     return $_[ 0 ]->regexer::regexp({
             "string"   => "Failed"    ,
             "row_name" => "name",
             "row_id"   => "run_status_id"  ,
-            "table"    => $_[ 0 ]->{ "RUN_STATUS" } , 
+            "table"    => $_[ 0 ]->{ "RUN_STATUS" } ,
     }) ;
 } ;
 }
@@ -44,7 +44,7 @@ use Log;
 use Errormsg;
 use JSON;
 use utf8 ;
-use Server_spec_datas qw( SESS_REQED $VIEWS $LOG SEL_CSET INS_CSET GET_FUNC_NAME $DB); 
+use DBConnHandler qw( SESS_REQED $VIEWS $LOG SEL_CSET INS_CSET GET_FUNC_NAME $DB);
 use MyFile ;
 
 our @ISA = qw( Log DBH Errormsg );
@@ -56,7 +56,7 @@ sub new {
     my $self     = {};
 
     bless $self, $class;
-    $DB = &Server_spec_datas::init( "testcase" );
+    $DB = &DBConnHandler::init( "testcase.cfg" );
     $_[ 0 ]->{ "DB_HANDLE" } = $DB ;
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $LOG;
     $self->init(@_);
@@ -65,7 +65,7 @@ sub new {
 
 sub init {
     my $self = shift;
-    
+
     eval '$self->' . "$_" . '::init( @_ )' for @ISA;
     $self->{ 'DB_HANDLE' }    = $_[0]->{ 'DB_HANDLE' };
     $self->{ 'LOG_DIR' }      = $_[0]->{ 'LOG_DIR' };
@@ -90,4 +90,3 @@ sub init_ids{
 }
 
 1 ;
- 

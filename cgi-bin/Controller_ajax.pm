@@ -1,12 +1,15 @@
 package Controller_ajax;
 
-use strict        ; 
-use Data::Dumper  ; 
-use AccMan        ;
+use strict        ;
+use Data::Dumper  ;
+
+use FindBin;
+use lib $FindBin::RealBin;
+
 use Log           ;
 use DB_Session    ;
-use Server_spec_datas qw( SESS_REQED $LOG START STOP ); 
-use ontozo_model ; 
+use DBConnHandler qw( SESS_REQED $LOG START STOP );
+use ontozo_model ;
 
 our @ISA ;
 
@@ -17,8 +20,8 @@ sub new {
 
     bless $self, $class;
     my $required_module;
-    
-    ( defined $_[ 0 ]->{ "MODEL" } ) ? ( $required_module = $_[ 0 ]->{ "MODEL" } ) : 
+
+    ( defined $_[ 0 ]->{ "MODEL" } ) ? ( $required_module = $_[ 0 ]->{ "MODEL" } ) :
                                        ( $required_module = "Modell_ajax" ) ;
 
     eval {
@@ -29,7 +32,7 @@ sub new {
        print "Module is not found: " . $@;
     };
 
-    @ISA = ( "Log", "AccMan", $required_module );
+    @ISA = ( "Log", $required_module );
     $self->init(@_);
     $self;
 }
@@ -40,7 +43,7 @@ sub init {
     $_[0]->{'DB_Session'} = $self->{'DB_Session'} ;
     eval '$self->' . "$_" . '::init(@_)' for @ISA;
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) ;
-    
+
     $self;
 }
 
@@ -49,21 +52,21 @@ sub start_action {
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) ;
 
     my $received_data = shift;
-   my $uid;
+    my $uid;
     my $return_value;
    if ( $received_data->{"session_data"} ) {
       $uid = $self->{'DB_Session'}->check_session( $received_data->{'session_data'} );
-        
+
     }
 
-    $self->start_time( @{ [ caller(0) ] }[3], $received_data ) ;    
+    $self->start_time( @{ [ caller(0) ] }[3], $received_data ) ;
     $received_data->{ $_ }->{'order'} = 10 foreach grep( !defined $received_data->{ $_ }->{'order'}, keys % { $received_data } ) ;
- 
+
     for ( sort {
         $received_data->{ $b }->{ 'order' } <=>
-        $received_data->{ $a }->{ 'order' }        
+        $received_data->{ $a }->{ 'order' }
         } keys %{$received_data} ){
-        
+
       next if ( ( $_ eq "session_data" ) or ( $_ eq "project" ) );
 
       if ( SESS_REQED($_) ) {
@@ -87,8 +90,8 @@ sub start_action {
 
       $return_value->{'time'}->{$_} = STOP;
       $return_value->{ "errors" } = $self->get_errors();
-   
-        
+
+
     }
     return $return_value;
 }

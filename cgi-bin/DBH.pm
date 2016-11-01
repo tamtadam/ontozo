@@ -10,7 +10,7 @@ use Log;
 use Errormsg;
 our @ISA = qw( Log Errormsg );
 use utf8;
-use Server_spec_datas qw( $DB ); 
+use DBConnHandler qw( $DB );
 #use Table ;
 use Carp;
 our $VERSION = '1.00';
@@ -61,7 +61,7 @@ sub my_insert {
     my $fields        = $self->create_insert_field_list($data);
     my $question_mark = $self->create_question_mark_list($data);
     my @array         = $self->create_param_list($data);
-   
+
    $self->start_time( @{ [ caller(0) ] }[3], "INSERT INTO $table ( $fields ) VALUES ( $question_mark )" ) ;
    my $gth = $self->{ 'DB_HANDLE' }->prepare( "INSERT INTO $table ( $fields ) VALUES ( $question_mark )" );
    #print Dumper "INSERT INTO $table ( $fields ) VALUES ( $question_mark )" ;
@@ -87,7 +87,7 @@ sub my_insert {
        }
 
        $res ? ( return $self->my_last_insert_id( $table ) ) : ( undef );
-       
+
    } else {
        return undef ;
    }
@@ -98,15 +98,15 @@ sub my_update {
    my $self = shift;
       $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $log;
       $self->{ 'DB_HANDLE' } = $DB if $DB and !defined $self->{ 'DB_HANDLE' }  ;
-    
+
    my $data = shift;
-    
+
    my $table         = $data->{table};
    my $return = undef;
    my $params;
    my $where_cl;
    #open( OUT, ">>c:\\xampp\\cgi-bin\\new_struct\\log\\my_update.txt" );
-    
+
    if ( defined $data->{'where_param'} ) {
       $params   = $data->{'where_param'};
       $where_cl = $data->{'where'};
@@ -122,7 +122,7 @@ sub my_update {
    #print OUT "-" x 30;
    #print OUT "\n";
     $self->start_time( @{ [ caller(0) ] }[3], "UPDATE $table SET $field = ? $where_cl" ) ;
-     
+
    my $gth = $self->{ 'DB_HANDLE' }->prepare( "UPDATE $table SET $field = ? $where_cl" ) ;
    $self->start_time( @{ [ caller(0) ] }[3], "UPDATE $table SET $field = ? $where_cl" ) if $log;
    $self->start_time( @{ [ caller(0) ] }[3], [ $data->{ 'update' }->{$field}, $params ] ) if $log;
@@ -137,14 +137,14 @@ sub my_call{
     my $self = shift;
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $log;
     my $data = shift;
-    
+
     my $return = [] ;
-   
+
     my $question_marks = $self->create_question_mark_list( $data );
     my @params         = $self->create_param_list( $data );
     my $res ;
     my $gth = $self->{ 'DB_HANDLE' }->prepare( "CALL $data->{function}( $question_marks )" ) ;
-    
+
     if( $gth ){
         $res = $gth->execute( @params );
         return undef unless $res ;
@@ -159,7 +159,7 @@ sub my_call{
     } else {
         return undef ;
     }
-    
+
     return undef if scalar @{ $return } == 0 and !wantarray ;
     if ( wantarray ){
         return @{ $return } ;
@@ -195,12 +195,12 @@ sub my_select {
    my $distinct_cl   = ( $data->{'distinct'} ? "DISTINCT"                   : "" );
    my $format        = ( $data->{'format'}   ? "$data->{format}"            : "" );
    my $limit         = ( $data->{'limit'}    ? "LIMIT $data->{limit}"       : "" );
-   
-   
+
+
    #print "SELECT $fields FROM $table $where_cl, $params\n ";
    $fields = $format if $format ne "";
    #print Dumper "SELECT $distinct_cl $fields FROM $table $join $where_cl $sort_closure $groupby $limit";
-   
+
    #print Dumper "command : SELECT $distinct_cl $fields FROM $table $where_cl $sort_closure  " , [ split( $PARAM_DELIMITER, $params ) ];
    #print Dumper "SELECT $distinct_cl $fields FROM $table $join $where_cl $sort_closure $groupby $limit";
    #print Dumper $params ;
@@ -215,7 +215,7 @@ sub my_select {
         #print Dumper $gth ;
 
         my $res = $gth->execute( @{ [ split( $PARAM_DELIMITER, $params ) ] } );
-        
+
         while ( $res = $gth->fetchrow_hashref ) {
             if ( wantarray and ( "ARRAY" ne ref $data->{ 'select' } ) ){
                 defined $data->{ 'select' } ? push @{ $return }, $res->{ $data->{ 'select' } } :
@@ -230,7 +230,7 @@ sub my_select {
         #print OUT "param: $params \n";
         #print OUT "R E S : $res\n\n" ;
         #print OUT "-" x 30;
-   
+
         #print OUT Dumper $return;
         #close OUT;
     }
@@ -240,7 +240,7 @@ sub my_select {
     } else {
         return $return ;
     }
-    
+
 }
 
 sub my_select_insert{
@@ -281,7 +281,7 @@ sub my_delete {
    my $self = shift;
    $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $log;
     $self->{ 'DB_HANDLE' } = $DB if $DB and !defined $self->{ 'DB_HANDLE' }  ;
-    
+
    my $data   = shift;
    my $return = undef;
   #open( OUT, ">>c:\\xampp\\cgi-bin\\new_struct\\log\\my_select.txt" );
@@ -303,9 +303,9 @@ sub my_delete {
    $self->start_time( @{ [ caller(0) ] }[3], "DELETE FROM $table $where_cl" ) if $log;
    $self->start_time( @{ [ caller(0) ] }[3], "$params" ) if $log;
    my $gth = $self->{DB_HANDLE}->prepare("DELETE FROM $table $where_cl");
-   
+
     if ( $gth ){
-        my $res = $gth->execute( @{ [ split( $PARAM_DELIMITER, $params ) ] } );       
+        my $res = $gth->execute( @{ [ split( $PARAM_DELIMITER, $params ) ] } );
         return $res ;
     } else {
         return undef ;
@@ -378,13 +378,13 @@ sub create_param_list {
     my $data  = shift;
     my $where = "";
     my $insert_or_call_param = "" ;
-    
+
     if( defined $data->{"params" } ){
         $insert_or_call_param = "params" ;
-    
+
     } elsif( defined $data->{"insert" } ) {
         $insert_or_call_param = "insert" ;
-        
+
     }
 
     if( "HASH" eq ref $data->{ $insert_or_call_param } ){
@@ -392,9 +392,9 @@ sub create_param_list {
         for ( keys %{ $data->{ $insert_or_call_param } } ) {
             $where .= $data->{ $insert_or_call_param }->{$_} . $PARAM_DELIMITER;
             push @ret_array, $data->{ $insert_or_call_param }->{$_}  ;
-        } 
+        }
     } else {
-        $where .= $_ . $PARAM_DELIMITER and 
+        $where .= $_ . $PARAM_DELIMITER and
         push @ret_array, $_ foreach split( ",", $data->{ 'params' })
     }
     $where =~ s/(.*?),\s*$/$1/;
@@ -450,7 +450,7 @@ sub my_last_insert_id {
    my $self = shift;
    $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $log;
     $self->{ 'DB_HANDLE' } = $DB if $DB and !defined $self->{ 'DB_HANDLE' }  ;
-    
+
     my $table = shift;
     $table =~/((.*?)\.)*(.*)/;
     return $self->{ 'DB_HANDLE' }->last_insert_id( undef, $2, $3, undef );
@@ -487,7 +487,7 @@ sub disconnect {
     my $self = shift ;
     $self->{ 'DB_HANDLE' } = $DB if $DB and !defined $self->{ 'DB_HANDLE' }  ;
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $log;
-    
+
     $self->{ 'DB_HANDLE' }->disconnect;
 }
 
@@ -499,9 +499,9 @@ sub empty_tables{
     my $self = shift ;
     $self->{ 'DB_HANDLE' } = $DB if $DB and !defined $self->{ 'DB_HANDLE' }  ;
     my $sth;
-    
+
     map{
-        print "TRUNCATE $_\n" ; 
+        print "TRUNCATE $_\n" ;
         $sth = $self->{ 'DB_HANDLE' }->prepare("TRUNCATE $_");
         $sth->execute() if $sth;
     } @{ $_[ 0 ] } ;

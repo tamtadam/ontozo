@@ -6,24 +6,24 @@
 
 use strict;
 use warnings;
-use Server_spec_datas; 
+use DBConnHandler;
 use CGI;
 use View_ajax;
 use Controller_ajax;
 use Data::Dumper ;
 
-my $relay_db = &Server_spec_datas::init( "relay" );
+my $relay_db = &DBConnHandler::init( "relay.cfg" );
 
 my $ajax       = View_ajax->new()      ;
-my $controller = Controller_ajax->new( { 
+my $controller = Controller_ajax->new( {
                                         'DB_HANDLE' => $relay_db ,
                                         'MODEL'     => "ontozo_model",
-                                        'LOG_DIR'   => "d:\\XAMPP_2\\cgi-bin\\ontozo\\log\\",
+                                        'LOG_DIR'   => "f:\\xammp\\cgi-bin\\ontozo\\log\\",
 } );
 
 
 my $struct;
-my $data;          
+my $data;
 
 $data = $ajax->get_data_from_server();
 

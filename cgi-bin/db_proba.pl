@@ -1,11 +1,11 @@
 use strict ;
 use Data::Dumper ;
-use Server_spec_datas ;
+use DBConnHandler ;
 use ontozo_model;
 use relay;
 use program;
 
-my $relay_db = &Server_spec_datas::init( "relay" );
+my $relay_db = &DBConnHandler::init( "relay.cfg" );
 
 
 my $relay = ontozo_model->new({
