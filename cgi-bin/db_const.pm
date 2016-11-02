@@ -58,7 +58,7 @@ sub new {
     bless $self, $class;
     $DB = &DBConnHandler::init( "testcase.cfg" );
     $_[ 0 ]->{ "DB_HANDLE" } = $DB ;
-    $self->start_time( @{ [ caller(0) ] }[3], \@_ ) if $LOG;
+    $self->start_time( @{ [ caller(0) ] }[3], \@_ );
     $self->init(@_);
     $self;
 }

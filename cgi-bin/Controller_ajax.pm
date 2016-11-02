@@ -8,7 +8,7 @@ use lib $FindBin::RealBin;
 
 use Log           ;
 use DB_Session    ;
-use DBConnHandler qw( SESS_REQED $LOG START STOP );
+use DBConnHandler qw( SESS_REQED START STOP );
 use ontozo_model ;
 
 our @ISA ;
@@ -86,7 +86,7 @@ sub start_action {
           $self->start_time( @{ [ caller(0) ] }[3], \@ontozo_model::ISA ) ;
           delete $received_data->{ $_ }->{'order'} ;
       $return_value->{$_} = $self->$_( $received_data->{$_} );
-         $self->start_time( @{ [ caller(0) ] }[3], $return_value ) if $LOG;
+         $self->start_time( @{ [ caller(0) ] }[3], $return_value ) ;
 
       $return_value->{'time'}->{$_} = STOP;
       $return_value->{ "errors" } = $self->get_errors();
