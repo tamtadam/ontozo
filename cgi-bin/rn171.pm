@@ -1,5 +1,7 @@
 package rn171;
 use strict;
+use utf8;
+
 use Data::Dumper;
 use Errormsg;
 use Log  ;
@@ -43,7 +45,7 @@ Readonly::Hash my %hash => (
     RELAY6ON      => "j",
     RELAY7ON      => "k",
     RELAY8ON      => "l",
-    
+
     RELAY1OFF     => "o",
     RELAY2OFF     => "p",
     RELAY3OFF     => "q",
@@ -52,7 +54,7 @@ Readonly::Hash my %hash => (
     RELAY6OFF     => "t",
     RELAY7OFF     => "u",
     RELAY8OFF     => "v",
-    
+
     CLOSE         => "close",
 
 );
@@ -94,19 +96,21 @@ sub send_command_to_relay {
             $relay_hr->update_connected( 0 );
         }
     } else {
-    
-    
+
+
     }
 }
 
 sub show_rssi {
     my $relay_hr = shift;
     my $wifly = get_connection( $relay_hr );
-    $wifly->send_msg( '$$$' ) ;
-    
-    $wifly->send_msg( "show rssi" ) ;
-    $wifly->send_msg( "exit" );
-    my $res = $wifly ->my_recv();
+
+    $wifly->send_msg( '$$$', 1);
+    my $res = $wifly->send_msg( "show rssi", 1);
+    $wifly->send_msg( "exit");
+
+    #$wifly->my_recv( 1024 );
+
     return $res;
 }
 
@@ -134,10 +138,10 @@ sub get_connection {
                                                             'autoconn'      => $relay_hr->AUTOCONN ,
                                                             'connect_retry' => $relay_hr->CONNECT_RETRY // 600 ,
             });
-            sleep(5);
+            sleep(1);
             $active_connections->{ $relay_hr->IP }->connect();
             print "Wait for start\n";
-            sleep(10);
+            sleep(5);
             print $active_connections->{ $relay_hr->IP } ->my_recv() . "\n";
             print "MANUAL:" . $rn171->MANUAL . "\n";
             print "ALLRELAYOFF:" . $rn171->ALLRELAYOFF . "\n";

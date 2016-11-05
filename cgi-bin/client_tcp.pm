@@ -1,7 +1,6 @@
-#!/usr/bin/perl -w
-
 package client_tcp;
 
+use utf8;
 use strict;
 use IO::Socket;
 use Data::Dumper;
@@ -9,6 +8,8 @@ use Sys::Hostname;
 use POSIX;
 use Carp;
 use IO::Socket::Timeout;
+use English qw' -no_match_vars ';
+use feature qw( state );
 
 $| = 1; # flush after every wright
 
@@ -18,11 +19,11 @@ sub new {
    my $self     = {};
 
    $self = {
-              'socket_m'   => undef               ,
-              'host'       => $_[ 0 ]->{ 'host' } ,
-              'port'       => $_[ 0 ]->{ 'port' } ,
-              'autoconn'   => $_[ 0 ]->{ 'autoconn' },
-              'connect_retry'   => $_[ 0 ]->{ 'connect_retry' } // 10,
+              'socket_m'      => undef               ,
+              'host'          => $_[ 0 ]->{ 'host' } ,
+              'port'          => $_[ 0 ]->{ 'port' } ,
+              'autoconn'      => $_[ 0 ]->{ 'autoconn' },
+              'connect_retry' => $_[ 0 ]->{ 'connect_retry' } // 10,
            };
 	bless $self, $class;
 	$self
@@ -48,29 +49,36 @@ sub connect{
 }
 
 sub send_msg{
+    state $cnt = 0;
     my $self = shift;
     my $msg  = shift;
-    my $without_recv = shift ;
-    my $rv  = $self->{'socket_m' }->send( "$msg\r\n", 0 );
+
+    my $with_recv = shift ;
+    my $rv  = $self->{'socket_m' }->send( "$msg\r\n");
+
     if ( $self->{ autoconn } && (!defined $rv or $rv == 0 or $rv == -1 ) ){
         $self->my_close();
         $self->{'socket_m'} = undef;
         $self->connect() ;
         return undef ; # trigger reconnect
     }
+    sleep( 1 );
+    if ( $with_recv ) {
+        return $self->my_recv();
+    }
     return $rv;
 }
 
 sub my_recv{
     my $self = shift ;
+    my $size = shift ;
     my $rv2 ;
     my $msg ;
-    $rv2 = $self->{'socket_m' }->recv( $msg, POSIX::BUFSIZ, 0 );
-    #print "RECV bytes: ".  $rv2 . "\n";
-    #print "MSG:       ---->". $msg . "<---\n";       
+    $rv2 = $self->{'socket_m' }->recv( $msg, $size || POSIX::BUFSIZ, 0 );
+
     if ( defined $rv2 ) {
         return $msg;
-        
+
     } else {
         print Dumper $!;
         $self->my_close();

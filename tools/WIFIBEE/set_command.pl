@@ -2,7 +2,7 @@
 
 use client_tcp;
 use strict;
-use Data::Dumper; 
+use Data::Dumper;
 use utf8;
 use lib 'd:\\XAMPP_2\\cgi-bin\\ontozo\\' ;
 use rn171 qw($rn171);
@@ -11,7 +11,7 @@ my $wifly = client_tcp->new({
                             'host' => "192.168.0.20" ,
                             'port' => 2000           ,
 });
-    
+
 $wifly->connect();
 
 $wifly->send_msg($rn171->MANUAL, 1) . "\n";
@@ -24,7 +24,7 @@ END{
 
 sleep(1);
 while( 1 ){
-    
+
     print "Ret:" . $wifly->send_msg($rn171->RELAY1ON, 1) . "\n";
     sleep( 1 ) ;
     print "Ret:" . $wifly->send_msg($rn171->RELAY2ON, 1) . "\n";
