@@ -31,8 +31,10 @@ sub new {
 
 sub connect{
    my $self = shift;
+   my $cnt  = 0;
+
    $self->{'socket_m'} = undef ;
-   my $cnt = 0;
+
    until( $self->{'socket_m'} or $cnt > $self->{'connect_retry'} ){
        $self->{'socket_m'} =  new IO::Socket::INET(
             		   PeerAddr => $self->{ 'host' } ,
@@ -41,11 +43,14 @@ sub connect{
       				   Timeout  => 1                 ,
       				   Proto    => 'tcp') or print "CONNECTION ERROR: $cnt\n";
        $cnt++;
+       sleep( 2 );
    }
+
    IO::Socket::Timeout->enable_timeouts_on( $self->{'socket_m'} );
    $self->{'socket_m'}->read_timeout(2);
    $self->{'socket_m'}->write_timeout(2);
    return $self->{'socket_m'};
+
 }
 
 sub send_msg{
@@ -57,16 +62,22 @@ sub send_msg{
     my $rv  = $self->{'socket_m' }->send( "$msg\r\n");
 
     if ( $self->{ autoconn } && (!defined $rv or $rv == 0 or $rv == -1 ) ){
-        $self->my_close();
-        $self->{'socket_m'} = undef;
-        $self->connect() ;
-        return undef ; # trigger reconnect
+        warn Dumper $!;
+        print "Start Reconnection procedure\n";
+        $self->init_reconnect();
+        return; # trigger reconnect
     }
     sleep( 1 );
     if ( $with_recv ) {
         return $self->my_recv();
     }
     return $rv;
+}
+
+sub init_reconnect {
+    my $self = shift;
+    $self->my_close();
+    $self->connect() ;
 }
 
 sub my_recv{
@@ -80,18 +91,20 @@ sub my_recv{
         return $msg;
 
     } else {
-        print Dumper $!;
-        $self->my_close();
-        $self->{'socket_m'} = undef;
-        $self->connect() ;
-        return '';
+        warn $!;
+        print "Start Reconnection procedure\n";
+        $self->init_reconnect();
+        return;
     }
 }
 
 sub my_close {
 	my $self = shift ;
+    $self->{ 'socket_m' }->close();
 	shutdown( $self->{ 'socket_m' }, 2);
 	close $self->{ 'socket_m' } ;
+    $self->{'socket_m'} = undef;
+
 }
 
 sub init_relay{

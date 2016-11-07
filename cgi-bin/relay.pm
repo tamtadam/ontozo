@@ -28,6 +28,7 @@ sub init {
     my $self = shift;
     my $relay_params = shift;
     eval '$self->' . "$_" . '::init(@_)' for @ISA;
+
     if ( $relay_params->{ "relay_id" } ) {
         my $relay_data = $self->my_select({
             "select" => "ALL"  ,
@@ -42,11 +43,13 @@ sub init {
         #remove program relevant values
         delete $relay_params->{ $_ } for keys %{$relay_data->[ 0 ] };
         $self->read_data_to_from_db_to_obj( $relay_params );
+
     } else {
-        $self->add_autoload_method( 'IP', $relay_params->{ip} );
-        $self->add_autoload_method( 'PORT', $relay_params->{port} );
+        $self->add_autoload_method( 'IP',            $relay_params->{ip} );
+        $self->add_autoload_method( 'PORT',          $relay_params->{port} );
         $self->add_autoload_method( 'CONNECT_RETRY', $relay_params->{connect_retry} );
-        $self->add_autoload_method( 'AUTOCONN', $relay_params->{autoconn} );
+        $self->add_autoload_method( 'AUTOCONN',      $relay_params->{autoconn} );
+        $self->add_autoload_method( 'PING_RETRY',    $relay_params->{ping_retry} );
     }
 
     return $self;
@@ -65,7 +68,7 @@ sub check_for_update {
     my $update_needed = ( ( $self->LAST_MODIFIED()) and ( $self->update_is_needed( $self->LAST_MODIFIED(), $act_time->[0]->{ 'last_modified' } ) ) );
     if( $update_needed ){
         $self->init({
-            'relay_id' => $self->RELAY_ID(), 
+            'relay_id' => $self->RELAY_ID(),
         });
     }
     return $update_needed;
@@ -94,6 +97,10 @@ sub show_rssi {
     rn171::show_rssi( $self );
 }
 
+sub test {
+    my $self = shift;
+}
+
 sub execute_command{
     my $self = shift;
     rn171::send_command_to_relay( $self );
@@ -114,11 +121,11 @@ sub delete_connection{
 
 sub delete_relay{
     my $self = shift ;
-    
+
     my $relay = relay->new({
-        "relay_id" => $_[ 0 ]->{ 'relay_id' } 
+        "relay_id" => $_[ 0 ]->{ 'relay_id' }
     });
-    
+
     $relay->delete_it() ;
 }
 
@@ -139,7 +146,7 @@ sub get_relay_list_not_in_prog{
              'select' => [ 'r.relay_id   AS relay_id' ],
               'join'  => 'LEFT JOIN program_relay pr ON pr.relay_id = r.relay_id',
               'where' => {
-                          "pr.program_id" => 'IS NULL' 
+                          "pr.program_id" => 'IS NULL'
               },
     });
     return $relays ;
@@ -153,7 +160,7 @@ sub update_name{
             "name" => $_[ 0 ],
         },
         "where" => {
-            "relay_id" => $self->get_id() , 
+            "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -174,7 +181,7 @@ sub update_pos{
             "pos" => $_[ 0 ],
         },
         "where" => {
-            "relay_id" => $self->get_id() , 
+            "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -191,7 +198,7 @@ sub update_connected{
             "connected" => $_[ 0 ],
         },
         "where" => {
-            "relay_id" => $self->get_id() , 
+            "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -205,7 +212,7 @@ sub get_pos{
 }
 
 sub get_id{
-    return $_[ 0 ]->{ 'relay_id' } ;   
+    return $_[ 0 ]->{ 'relay_id' } ;
 }
 
 sub delete_it{
@@ -226,7 +233,7 @@ sub update_ip{
             "ip" => $_[ 0 ],
         },
         "where" => {
-            "relay_id" => $self->get_id() , 
+            "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -247,7 +254,7 @@ sub update_status{
             "run_status_id" => $_[ 0 ],
         },
         "where" => {
-            "relay_id" => $self->get_id() , 
+            "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -258,7 +265,7 @@ sub update_status{
 }
 
 sub connect {
-    
+
 }
 
 sub get_status{
@@ -267,7 +274,7 @@ sub get_status{
 
 sub add_new_relay{
     my $self       = shift ;
-    
+
     map { delete $_[ 0 ]->{ $_ } } grep( !defined $_[ 0 ]->{ $_ }, keys %{ $_[ 0 ] } ) ;
     $self->start_time( @{ [ caller(0) ] }[3], $_[ 0 ] );
     my $new_rel_id = $self->my_insert({
@@ -306,7 +313,7 @@ sub save_relay_data_to_db{
     };
 
     my $relay = relay->new({
-        "relay_id" => $_[ 0 ]->{ 'id' } 
+        "relay_id" => $_[ 0 ]->{ 'id' }
     });
 
     my $update_items = [ grep ( $_ ne "id" && $_ ne "uid", keys %{ $_[ 0 ] } ) ] ;
