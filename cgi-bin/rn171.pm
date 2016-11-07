@@ -69,8 +69,20 @@ INIT {
 
 sub _ping {
     my $relay_hr = shift;
-    print "PING:" . $relay_hr->IP . "\n";
-    return $ping->ping( $relay_hr->IP, 10);
+    my $wait     = $relay_hr->PING_RETRY() || 10;
+    my $res      = undef;
+
+    do {
+        print "\n\nPING:" . $relay_hr->IP . "\n";
+        $res = $ping->ping( $relay_hr->IP, 2);
+        print "Retry Ping..." unless $res;
+        $wait--;
+
+    } while ( !$res && $wait > 0 );
+
+    print "PING is " . ( $res ? "SUCCESSFULL" : "FAILED") . "\n";
+    print "Giving up Ping after $wait trial\n" unless $res;
+    return $res;
 }
 
 sub send_command_to_relay {
@@ -124,8 +136,6 @@ sub delete_connection {
 
 sub get_connection {
     my $relay_hr      = shift;
-    my $connect_retry = shift ;
-    state $ping_cnt   = 0;
 
     unless ( exists $active_connections->{ $relay_hr->IP } ) {
         if( _ping( $relay_hr ) ) {
@@ -138,21 +148,27 @@ sub get_connection {
                                                             'autoconn'      => $relay_hr->AUTOCONN ,
                                                             'connect_retry' => $relay_hr->CONNECT_RETRY // 600 ,
             });
-            sleep(1);
+            sleep(2);
+
             $active_connections->{ $relay_hr->IP }->connect();
             print "Wait for start\n";
-            sleep(5);
+            sleep(2);
+
             print $active_connections->{ $relay_hr->IP } ->my_recv() . "\n";
             print "MANUAL:" . $rn171->MANUAL . "\n";
             print "ALLRELAYOFF:" . $rn171->ALLRELAYOFF . "\n";
+
             $active_connections->{ $relay_hr->IP }->send_msg( $rn171->MANUAL );
             $active_connections->{ $relay_hr->IP }->send_msg( $rn171->ALLRELAYOFF );
             return $active_connections->{ $relay_hr->IP } ;
+
         } else {
             return undef;
+
         }
     } else {
         return $active_connections->{ $relay_hr->IP };
+
     }
     return undef;
 
@@ -166,8 +182,9 @@ sub STOPCONNECTIONS {
         $active_connections->{ $conn_id }->send_msg($rn171->ALLRELAYOFF);
         $active_connections->{ $conn_id }->send_msg($rn171->AUTO);
         $active_connections->{ $conn_id }->send_msg($rn171->CLOSE);
-        sleep(4);
+        sleep( 4 );
         $active_connections->{ $conn_id }->my_close();
+        sleep( 3 );
     }
 }
 
