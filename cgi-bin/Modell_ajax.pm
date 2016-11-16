@@ -1,4 +1,4 @@
-package ontozo_model;
+package Modell_ajax;
 use strict;
 use Data::Dumper;
 
