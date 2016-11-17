@@ -14,40 +14,40 @@ function Relay_in_program( relay_data ){
     };
 
     this.get_program_id = function(){
-        return this.program_id ;    
+        return this.program_id ;
     };
     this.get_start = function(){
         return this.start ;
     };
     this.get_stop = function(){
-        return this.stop ;    
+        return this.stop ;
     };
     this.set_stop = function( stop ){
         if ( this.save_data_to_db( { 'stop' : stop, 'program_id' : this.get_program_id(), 'relay_id' : this.get_relay_id(), 'program_relay_id' : this.get_program_relay_id() } ) ){
             this.stop = stop ;
         } else {
-            alert ( "stop is not saved" ) ; 
-        }   
+            alert ( "stop is not saved" ) ;
+        }
     };
     this.set_start = function( start ){
         if ( this.save_data_to_db( { 'start' : start, 'program_id' : this.get_program_id(), 'relay_id' : this.get_relay_id(), 'program_relay_id' : this.get_program_relay_id() } ) ){
             this.start = start ;
         } else {
-            alert ( "start is not saved" ) ; 
-        }   
-    }; 
+            alert ( "start is not saved" ) ;
+        }
+    };
     this.remove_relay_in_program = function(){
         var ret_val = new Object( { 'remove_relay_in_program' : 1 } ) ;
-        
+
         push_cmd("remove_relay_in_program", JSON.stringify( {
-        	'program_id' : this.get_program_id(), 
+        	'program_id' : this.get_program_id(),
         	'relay_id' : this.get_relay_id()
         } ) ) ;
         ret_val = processor( send_cmd(), ret_val) ;
     }
     this.save_data_to_db = function( save_data ){
         var ret_val = new Object( { 'update_relay_prog_data_to_db' : 1 } ) ;
-        
+
         push_cmd("update_relay_prog_data_to_db", JSON.stringify( save_data ) ) ;
         ret_val = processor( send_cmd( ASYNC ), ret_val ) ;
 
@@ -55,7 +55,7 @@ function Relay_in_program( relay_data ){
             return true ;
         } else {
             return false ;
-        }  
+        }
     }
 };
 
@@ -92,7 +92,7 @@ function removerelay_from_program( id ){
     	}
     }
     G_RELAYS_IN_PROGRAM.splice( i, 1 ) ;
-}   
+}
 
 function print_relay_in_program( relays_in_program ){
     var new_relay_div = create_div( { "id" : relays_in_program.get_relay_id() + "_relay" } ) ;
@@ -106,15 +106,15 @@ function print_relay_in_program( relays_in_program ){
 
     p.innerHTML = relay.get_name() + ":  " + String( relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM()  ;
 
-    new_relay_div.appendChild( p ) ;                
-    new_relay_div.appendChild( conn ) ;                
-    new_relay_div.appendChild( new_slid_div ) ;     
-    new_relay_div.appendChild( remove_relay ) ;     
+    new_relay_div.appendChild( p ) ;
+    new_relay_div.appendChild( conn ) ;
+    new_relay_div.appendChild( new_slid_div ) ;
+    new_relay_div.appendChild( remove_relay ) ;
 
     document.getElementById( "actual_program" ).appendChild( new_relay_div ) ;
 
     G_RELAYS.print_connections( relay.get_id(), relay.get_id() + "_prog_conn" ) ;
-        
+
     $( "#" + relays_in_program.get_program_id() + relays_in_program.get_relay_id() + "_slider" ).slider({
       range: true ,
       min: 0      ,
@@ -125,8 +125,8 @@ function print_relay_in_program( relays_in_program ){
     	  p.innerHTML = relay.get_name() + ":  " + String(  ui.values[ 0 ] ).toHHMM() + " " + String( ui.values[ 1 ] ).toHHMM()  ;
       } ,
       stop: function( event, ui ) {
-        relays_in_program.set_start( ui.values[ 0 ] ) ; 
-        relays_in_program.set_stop( ui.values[ 1 ] ) ; 
+        relays_in_program.set_start( ui.values[ 0 ] ) ;
+        relays_in_program.set_stop( ui.values[ 1 ] ) ;
         var relay = G_RELAYS.get_relay_by_id( relays_in_program.get_relay_id() ) ;
 
         p.innerHTML = relay.get_name() + ":  " + String(  relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM()  ;
@@ -139,7 +139,7 @@ function print_relay_in_program( relays_in_program ){
             	var start = G_RELAYS_IN_PROGRAM[ cnt ].get_start() ;
             	var stop  = G_RELAYS_IN_PROGRAM[ cnt ].get_stop() ;
             	var conn_relay = G_RELAYS.get_relay_by_id( G_RELAYS_IN_PROGRAM[ cnt ].get_relay_id() ) ;
-            	if ( (  ui.values[ 0 ] >= start && ui.values[ 0 ] <= stop ) && 
+            	if ( (  ui.values[ 0 ] >= start && ui.values[ 0 ] <= stop ) &&
             			( ui.values[ 1 ] >= start && ui.values[ 1 ] <= stop ) ){
             		p.innerHTML += conn_relay.get_name() + "  ";
             	} else if(0){
@@ -168,9 +168,9 @@ function new_relay(){
 
 function new_program(){
     var name = document.getElementById( "new_program_name" ).value ;
-    
+
     G_PROGRAMS.add_new_program( { "name" : name } ) ;
-    
+
     print_available_programs() ;
 }
 
@@ -178,11 +178,11 @@ function new_program(){
 function add_relay_to_program(){
     var selected_relay = $("#relay_list").children(":selected").attr("id");
     var selected_prog  = $("#program_list").children(":selected").attr("id");
-    
+
     if ( selected_relay == null || selected_prog == null ){
         return ;
     }
-    
+
     for( var i = 0; i < G_RELAYS_IN_PROGRAM.length; i++ ){
     	if( G_RELAYS_IN_PROGRAM[ i ].get_relay_id() == selected_relay &&
     	    G_RELAYS_IN_PROGRAM[ i ].get_program_id() == selected_prog	){
@@ -195,9 +195,9 @@ function add_relay_to_program(){
     	'start' : DEF_START,
     	'stop' : DEF_STOP,
     }) ;
-    
+
     var ret_val = new Object( { 'add_relay_to_program' : 1 } ) ;
-    
+
     push_cmd("add_relay_to_program", JSON.stringify( {
     	'relay_id' : selected_relay,
     	'program_id' : selected_prog,
@@ -227,13 +227,13 @@ function open_program(){
     $( "#repetition_time" ).show() ;
     $( "#program_name" ).show() ;
     $( "#save_prog_data" ).show() ;
-    
+
     document.getElementById( "actual_program" ).innerHTML = "" ;
     var selected_prog  = $("#program_list").children(":selected").attr("id");
     var program = G_PROGRAMS.get_program_by_id( selected_prog ) ;
     $( "#repetition_time" ).val( program.get_repetition_time() ) ;
     $( "#program_name" ).val( program.get_name() ) ;
-    
+
     create_button_as_img( "save_prog_data" +  program.get_id(), save_program, "save", "img/save.png" ) ;
     var options = {
             label: ( program.get_status() == execution.START ? "pause" : "play"),
@@ -241,7 +241,7 @@ function open_program(){
               primary: ( program.get_status() == execution.START ? "ui-icon-pause" : "ui-icon-play" ) ,
             }
           } ;
-    
+
     for( var cnt = 0; cnt < G_RELAYS_IN_PROGRAM.length; cnt++ ){
     	if( G_RELAYS_IN_PROGRAM[ cnt ].get_program_id() == program.get_id() ){
     		print_relay_in_program( G_RELAYS_IN_PROGRAM[ cnt ] ) ;
@@ -299,10 +299,9 @@ $(function() {
         }
       });
     });
-  
-    
+
+
   });
 
-  
-  
-  
+
+

@@ -57,11 +57,11 @@ sub execute_command{
     my $self            = shift;
     state $ping_cnt     = 0;
     my $is_running_prog = 0;
-    
+
     foreach my $obj ( $self->PROGRAM_LIST() ) {
         $obj->execute_command();
         if ($obj->is_act_time_between_start_stop()) {
-            $is_running_prog = 1;   
+            $is_running_prog = 1;
         };
     }
     if ($is_running_prog == 0) {

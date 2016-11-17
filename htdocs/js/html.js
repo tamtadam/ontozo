@@ -103,11 +103,11 @@ function create_select_list_fea(name, id, list, func) {
 
 function create_input( in_data ){
     var input = document.getElementById( in_data.id );
-    
+
     if (input == null) {
         input = document.createElement('input');
     }
-    
+
     input.id      = in_data.id ;
     input.type    = in_data.type ;
     input.name    = in_data.name ;
@@ -156,7 +156,7 @@ function create_table(table_id, table_data){
     var table = document.createElement("table");
     var header = table.createTHead();
     var row = header.insertRow(0);
-    
+
     for( var cell_cnt = 0; cell_cnt < table_data['headers'].length; cell_cnt++ ){
         cell1 = row.insertCell(cell_cnt);
         cell1.appendChild( table_data['headers'][ cell_cnt ] );
