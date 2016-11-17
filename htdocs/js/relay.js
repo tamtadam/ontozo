@@ -2,60 +2,60 @@ var RELAYS;
 var CONNECTIONS;
 var accordion_mc = null;
 // = {
-//              "egy" : { 
-//                "ip"     : "1.1.1.1",                 
+//              "egy" : {
+//                "ip"     : "1.1.1.1",
 //                "status" : 0        ,
 //                "id"     : "egy_id" ,
 //                "name"   : "egy"    ,
 //                "pos"    : 1        ,
 //
 //              },
-//              "ketto" : { 
+//              "ketto" : {
 //                "ip"     : "1.1.1.1",
 //                "status" : 0        ,
 //                "id"     : "ketto"  ,
 //                "name"   : "ketto"  ,
 //                "pos"    : 2        ,
-//                "programs" : 
+//                "programs" :
 //                           {
-//                               "prog_1" : 
+//                               "prog_1" :
 //                                   {
 //                                   "start" : 100 ,
 //                                   "stop"  : 500 ,
 //                                   }
-//                           
+//
 //                           },
 //              },
-//              "harom" : { 
+//              "harom" : {
 //                "ip"     : "1.1.1.1",
 //                "status" : 0        ,
 //                "id"     : "harom"  ,
 //                "name"   : "harom"  ,
 //                "pos"    : 3        ,
-//                "programs" : 
+//                "programs" :
 //                           {
-//                               "prog_1" : 
+//                               "prog_1" :
 //                                   {
 //                                   "start" : 100 ,
 //                                   "stop"  : 500 ,
 //                                   }
-//                           
+//
 //                           },
 //              },
-//              "negy" : { 
+//              "negy" : {
 //                "ip"     : "1.1.1.1",
 //                "status" : 0        ,
 //                "id"     : "negy"   ,
 //                "name"   : "negy"   ,
 //                "pos"    : 4,
-//                "programs" : 
+//                "programs" :
 //                           {
-//                               "prog_1" : 
+//                               "prog_1" :
 //                                   {
 //                                   "start" : 100 ,
 //                                   "stop"  : 500 ,
 //                                   }
-//                           
+//
 //                           },
 //              }};
 ///
@@ -102,10 +102,10 @@ function delete_connection( relay_id_p, remove_parent ){
     	}
     	
     }
-    push_cmd("delete_connection", JSON.stringify( 
-    											  { 
+    push_cmd("delete_connection", JSON.stringify(
+    											  {
     												"child"  : ( remove_parent == 0 ? relay.get_id() : null ),
-    												"parent" : from 
+    												"parent" : from
     											  } ) ) ;
     processor( send_cmd() ) ;
     get_connections();
@@ -115,7 +115,7 @@ function delete_connection( relay_id_p, remove_parent ){
 
 Relays.prototype.add_new_relay = function( data ){
     var ret_val = new Object( { 'add_new_relay' : 1 } ) ;
-    
+
     push_cmd( "add_new_relay", JSON.stringify( new Object( data ) ) ) ;
     ret_val = processor( send_cmd(), ret_val ) ;
     data    = ret_val[ 'add_new_relay' ]       ;
@@ -125,8 +125,8 @@ Relays.prototype.add_new_relay = function( data ){
         create_on_off_for_relay() ;
     } else {
         alert( "relay is not added" ) ;
-    }    
-    
+    }
+
 }
 
 Relays.prototype.get_relay_list_to_select_list = function(){
@@ -230,57 +230,57 @@ function Relay( relay_data ){
     this.set_id = function( id ){
         this.id = id ;
     } ;
-    
+
     this.get_id = function(){
         return this.id ;
     } ;
-    
+
     this.set_ip = function( ip ){
         if ( this.save_relay_data_to_db( { 'ip' : ip } ) ){
             this.ip = ip ;
         } else {
-            alert ( "ip is not saved" ) ; 
-        }        
+            alert ( "ip is not saved" ) ;
+        }
     } ;
-     
+
     this.get_ip = function(){
         return this.ip ;
     } ;
-    
+
     this.set_status = function( status ){
         if ( this.save_relay_data_to_db( { 'status' : status } ) ){
             this.status = status ;
         } else {
-            alert ( "status is not saved" ) ; 
-        }       
+            alert ( "status is not saved" ) ;
+        }
     } ;
-     
+
     this.get_status = function(){
         return this.status ;
     } ;
-    
+
     this.set_name = function( name ){
         if ( this.save_relay_data_to_db( { 'name' : name } ) ){
             this.name = name ;
         } else {
-            alert ( "name is not saved" ) ; 
-        }     
+            alert ( "name is not saved" ) ;
+        }
     } ;
-     
+
     this.get_name = function(){
         return this.name ;
     } ;
-    
+
     this.get_pos = function(){
         return this.pos ;
     } ;
-    
+
     this.set_pos = function( pos ){
         if ( this.save_relay_data_to_db( { 'pos' : pos } ) ){
             this.pos = pos ;
         } else {
-            alert ( "pos is not saved" ) ; 
-        }     
+            alert ( "pos is not saved" ) ;
+        }
     } ;
     this.delete_it = function(){
         push_cmd("delete_relay_from_program", JSON.stringify( { "relay_id" : this.get_id(), "order" : 1 } ) ) ;
@@ -292,7 +292,7 @@ function Relay( relay_data ){
         save_data.id = this.get_id() ;
 
         var ret_val = new Object( { 'save_relay_data_to_db' : 1 } ) ;
-        
+
         push_cmd("save_relay_data_to_db", JSON.stringify( save_data ) ) ;
 	    ret_val = processor( send_cmd(), ret_val) ;
 
@@ -300,7 +300,7 @@ function Relay( relay_data ){
             return true ;
 	    } else {
             return false ;
-	    }  
+	    }
     }
 }
 // TODO
@@ -319,24 +319,24 @@ function save_relay_data(){
 
     relay_id  = relay_id.replace( 'save_relay_data', '' ) ;
     var relay = G_RELAYS.get_relay_by_id( relay_id ) ;
-    
+
     var value = $("#name_" + relay_id ).val() ;
     if ( value && relay.get_name() != value ){
         relay.set_name( value ) ;
-    }    
-    
-    value = $("#ip_" + relay_id ).val() ; 
+    }
+
+    value = $("#ip_" + relay_id ).val() ;
     if ( value && relay.get_ip() != value ){
         relay.set_ip( value ) ;
-    }    
+    }
 
-    value = $("#pos_" + relay_id ).val() ; 
+    value = $("#pos_" + relay_id ).val() ;
     if ( value && relay.get_pos() != value ){
         relay.set_pos( value ) ;
     }
-    
+
     print_available_relays() ;
-    
+
     if( document.getElementById( relay_id + "_p" ) ){
         document.getElementById( relay_id + "_p" ).innerHTML = document.getElementById( relay_id + "_p" ).innerHTML.replace( /\w+/, relay.get_name() ) ;
     }
@@ -376,7 +376,7 @@ function create_on_off_for_relay(){
         'type'    : "radio"   ,
         'name'    : null      ,
         'checked' : "checked" ,
-    } ) ; 
+    } ) ;
 
     var on_label  = new Object( { "for" : "on" } ) ;
     var off_label = new Object( { "for" : "off" } ) ;
@@ -414,10 +414,10 @@ function create_on_off_for_relay(){
         } ) ;
 
         var relay_autocomplete = G_RELAYS.get_relays_to_acomplete( relay.get_id() ) ;
-        var p          = create_h6( relay.get_id() + "_connections" ) ;  
-        on_input.id    = "on_"  + relay.get_id() ;        
+        var p          = create_h6( relay.get_id() + "_connections" ) ;
+        on_input.id    = "on_"  + relay.get_id() ;
         off_input.id   = "off_" + relay.get_id() ;
-        on_input.name  = relay.get_id() ;        
+        on_input.name  = relay.get_id() ;
         off_input.name = relay.get_id() ;
 
         if( relay.get_status() == execution.START ){
@@ -426,35 +426,35 @@ function create_on_off_for_relay(){
             off_input.checked = "checked" ;
         }
 
-        on  = create_input( on_input )   ;    
-        off = create_input( off_input ) ;    
+        on  = create_input( on_input )   ;
+        off = create_input( off_input ) ;
 
         on_label  = create_label( { "for" : "on_"  + relay.get_id() , "html" : "ON"  } ) ;
         off_label = create_label( { "for" : "off_" + relay.get_id() , "html" : "OFF" } ) ;
 
-        ip = create_input( { 
+        ip = create_input( {
                             "id"   : "ip_" + relay.get_id() ,
                             "name" : "ip_" + relay.get_id() ,
-                            "type" : "input" 
+                            "type" : "input"
                        } ) ;
 
-        name = create_input( { 
+        name = create_input( {
                             "id"   : "name_" + relay.get_id() ,
                             "name" : "name_" + relay.get_id() ,
-                            "type" : "input" 
+                            "type" : "input"
                        } ) ;
 
-        position = create_input( { 
+        position = create_input( {
                             "id"   : "pos_" + relay.get_id() ,
                             "name" : "pos_" + relay.get_id() ,
-                            "type" : "input" 
+                            "type" : "input"
                        } ) ;
 
-        auto = create_input( { 
+        auto = create_input( {
                             "id"   : "auto_" + relay.get_id(),
                             "name" : "auto_" + relay.get_id(),
-                            "type" : "input" 
-                       } ) ;                       
+                            "type" : "input"
+                       } ) ;
 
         ip.value       = relay.get_ip() ;
         name.value     = relay.get_name() ;
@@ -465,7 +465,7 @@ function create_on_off_for_relay(){
     	/*row_id = add_row_to_table( "on_off", {
 			"id"   : "row_" + relay.get_id() ,
 			"name" : relay.get_name() ,
-			"btn_list" : [ on, on_label, off, off_label, 
+			"btn_list" : [ on, on_label, off, off_label,
 			               document.createElement( 'br' ), document.createTextNode( "ip:" ), ip ,
 			               document.createElement( 'br' ), document.createTextNode( "name:" ), name ,
 			               document.createElement( 'br' ), document.createTextNode( "position:" ), position ,

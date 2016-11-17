@@ -44,7 +44,7 @@ use Log;
 use Errormsg;
 use JSON;
 use utf8 ;
-use DBConnHandler qw( SESS_REQED $VIEWS $LOG SEL_CSET INS_CSET GET_FUNC_NAME $DB);
+use DBConnHandler qw( SESS_REQED SEL_CSET INS_CSET GET_FUNC_NAME $DB);
 use MyFile ;
 
 our @ISA = qw( Log DBH Errormsg );
