@@ -27,6 +27,7 @@ sub new {
 
 sub init {
     my $self = shift;
+    $self->{ $_ } = $_[ 0 ]->{ $_ } for qw(DB_HANDLE DB_Session);
     return $self;
 }
 

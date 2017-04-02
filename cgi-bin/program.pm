@@ -20,7 +20,7 @@ sub new {
 
 sub get_program_list{
     my $self = shift ;
-    
+
     my $progs = $self->my_select({
         'from'   => 'program',
         'select' => 'ALL'
@@ -68,14 +68,14 @@ sub check_for_update {
 
 sub update_name{
     my $self = shift ;
-    
+
     my $res = $self->my_update( {
         "table"  => "program",
         "update" => {
             "name" => $_[ 0 ],
         },
         "where" => {
-            "program_id" => $self->get_id() , 
+            "program_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -86,14 +86,14 @@ sub update_name{
 
 sub update_status{
     my $self = shift ;
-    
+
     my $res = $self->my_update( {
         "table"  => "program",
         "update" => {
             "run_status_id" => $_[ 0 ],
         },
         "where" => {
-            "program_id" => $self->get_id() , 
+            "program_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -112,7 +112,7 @@ sub update_repetition_time{
             "repetition_time" => $_[ 0 ],
         },
         "where" => {
-            "program_id" => $self->get_id() , 
+            "program_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
@@ -123,6 +123,7 @@ sub update_repetition_time{
 sub save_program_data_to_db{
     my $self = shift ;
     $self->start_time( @{ [ caller(0) ] }[3], \@_ ) ;
+    $self->start_time( @{ [ caller(0) ] }[3], $self ) ;
     my $param_fv = {
         "name"            => \&update_name,
         "status"          => \&update_status,
@@ -130,7 +131,7 @@ sub save_program_data_to_db{
     };
 
     my $program = program->new({
-        "program_id" => $_[ 0 ]->{ 'id' } 
+        "program_id" => $_[ 0 ]->{ 'id' }
     });
 
     my $update_item = [ grep ( $_ ne "id" && $_ ne "uid", keys %{ $_[ 0 ] } ) ]->[ 0 ] ;
@@ -159,11 +160,11 @@ sub delete{
         "where" => {
             "program_id" => $self->get_id() ,
         },
-    }) ;  
+    }) ;
 }
 
 sub get_id{
-    return $_[ 0 ]->{ 'program_id' } ;   
+    return $_[ 0 ]->{ 'program_id' } ;
 }
 
 sub get_name{
@@ -171,9 +172,9 @@ sub get_name{
 }
 
 sub get_status{
-    return $_[ 0 ]->{ 'run_status_id' } ;   
+    return $_[ 0 ]->{ 'run_status_id' } ;
 }
 
 sub get_repetition_time{
-    return $_[ 0 ]->{ 'repetition_time' } ;   
+    return $_[ 0 ]->{ 'repetition_time' } ;
 }

@@ -1,0 +1,7 @@
+set wlan ssid ablakzsiraf
+set wlan auth 2
+set wlan join 1
+set ip dhcp 0
+set wlan phrase 'Q"W3e4r
+set ip address 192.168.0.20
+set wlan channel 0 i
