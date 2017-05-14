@@ -26,12 +26,12 @@ $SIG{KILL} = sub {
     rn171::STOPCONNECTIONS();
     exit;
 };
-my $relay_db = &DBConnHandler::init( "relay.cfg" );
+my $relay_db = &DBConnHandler::init( "server.cfg" );
 
 my $ajax       = View_ajax->new()      ;
 my $controller = Controller_ajax->new( {
                                         'DB_HANDLE' => $relay_db ,
-                                        'MODEL'     => "ontozo_model",
+                                        'MODEL'     => "Modell_ajax",
                                         'LOG_DIR'   => "d:\\XAMPP_2\\cgi-bin\\ontozo\\log\\",
 } );
 

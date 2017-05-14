@@ -1,5 +1,6 @@
 var CGI_PATH   = "ontozo";
 var PROC_ARRAY = {};
+var FUNC_ARRAY = {};
 var ASYNC = 1 ;
 var execution = {
     STOP:  3,

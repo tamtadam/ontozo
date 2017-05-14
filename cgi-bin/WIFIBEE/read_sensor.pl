@@ -2,20 +2,26 @@
 
 use client_tcp;
 use strict;
-use Data::Dumper; 
+use Data::Dumper;
+use English qw' -no_match_vars ';
+use FindBin;
+use lib $FindBin::RealBin;
+use lib $FindBin::RealBin . ( $OSNAME =~/win/i ? "/../../ontozo/" : "/../../cgi-bin/");
+
+use lib $FindBin::RealBin . "/../";
 
 my $wifly = client_tcp->new({
                             'host' => "192.168.0.21" ,
                             'port' => 2000      ,
 });
-    
+
 $wifly->connect();
-print $wifly ->my_recv(); 
+print $wifly ->my_recv();
 
 $wifly->send_msg( '$$$' ) ;
-print $wifly ->my_recv(); 
+print $wifly ->my_recv();
 $wifly->send_msg( "" ) ;
-print $wifly ->my_recv(); 
+print $wifly ->my_recv();
 
 while ( 1 ){
     foreach ( 0..7 ) {
@@ -23,7 +29,7 @@ while ( 1 ){
         select ( undef, undef, undef, 0.5 ) ;
         my $res = $wifly->my_recv() ;
         my $volt = &get_voltage_from_res( $res ) ;
-        print "$_ : " . $volt . "\n" if $volt > 0.15 ; 
+        print "$_ : " . $volt . "\n" if $volt > 0.15 ;
     }
 }
 
@@ -31,7 +37,7 @@ sleep( 5 ) ;
 $wifly->my_close();
 END{
     $wifly->my_close();
-    
+
 }
 
 sub get_voltage_from_res{
@@ -41,7 +47,7 @@ sub get_voltage_from_res{
 }
 =pod
 while( 1 ){
-    
+
     print "Ret:" . $cli ->send_msg("\\1", 1) . "\n";
     print "Ret:" . $cli ->send_msg("[") . "\n";
     sleep( 2 ) ;

@@ -11,9 +11,9 @@ use client_tcp;
 use Cfg;
 use Carp;
 use Controller_ajax;
-use Server_spec_datas; 
+use DBConnHandler; 
 use Log qw($LOG_ENABLED);
-#my $relay_db = &Server_spec_datas::init( "relay" );
+#my $relay_db = &DBConnHandler::init( "relay" );
 #my $controller = Controller_ajax->new( { 
 #                                        'DB_HANDLE' => $relay_db ,
 #                                        'MODEL'     => "ontozo_model",
