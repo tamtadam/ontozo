@@ -93,7 +93,9 @@ function create_select_list_fea(name, id, list, func) {
         sel.options[i]       = new Option( list[ idx ][ 'title' ], list[ idx ][ 'title' ] );
         sel.options[i].value = list[ idx ][ 'id' ];
         sel.options[i].id    = list[ idx ][ 'id' ];
-
+        if ( list[ idx ][ 'data' ] ) {
+        	$( sel.options[i] ).data( 'data', list[ idx ][ 'data' ] ) ;
+        }
         i++;
     }
 

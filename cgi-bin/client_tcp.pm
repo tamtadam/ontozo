@@ -10,6 +10,10 @@ use Carp;
 use IO::Socket::Timeout;
 use English qw' -no_match_vars ';
 use feature qw( state );
+use Carp;
+use IO::Select;
+
+my $select = IO::Select->new();
 
 $| = 1; # flush after every wright
 
@@ -49,6 +53,8 @@ sub connect{
    IO::Socket::Timeout->enable_timeouts_on( $self->{'socket_m'} );
    $self->{'socket_m'}->read_timeout(2);
    $self->{'socket_m'}->write_timeout(2);
+   $select->add( $self->{'socket_m'} );
+
    return $self->{'socket_m'};
 
 }
@@ -57,9 +63,9 @@ sub send_msg{
     state $cnt = 0;
     my $self = shift;
     my $msg  = shift;
-
     my $with_recv = shift ;
-    my $rv  = $self->{'socket_m' }->send( "$msg\r\n");
+
+    my $rv  = $self->{'socket_m' }->send( "$msg\r\n"); # "\r\n"
 
     if ( $self->{ autoconn } && (!defined $rv or $rv == 0 or $rv == -1 ) ){
         warn Dumper $!;
@@ -85,16 +91,36 @@ sub my_recv{
     my $size = shift ;
     my $rv2 ;
     my $msg ;
-    $rv2 = $self->{'socket_m' }->recv( $msg, $size || POSIX::BUFSIZ, 0 );
 
-    if ( defined $rv2 ) {
-        return $msg;
+    my @ready = $select->can_read(4);
+
+    if (@ready) {
+        $rv2 = $self->{'socket_m' }->recv( $msg, $size || POSIX::BUFSIZ, 0 );
+        my $packs= [
+            {packa    => pack( "a*", $msg )},
+            {packAs   => pack( "A*", $msg )},
+            {packHs   => pack( "H*", $msg )},
+            {packbs   => pack( "b*", $msg )},
+            {packBs   => pack( "B*", $msg )},
+            {unpackas => unpack( "a*", $msg )},
+            {unpackAs => unpack( "A*", $msg )},
+            {unpackHs => unpack( "H*", $msg )},
+            {unpackBs => unpack( "B*", $msg )},
+            {unpackbs => unpack( "b*", $msg )},
+        ];
+        if ( defined $rv2 ) {
+            return ($msg, $packs);
+
+        } else {
+            warn $!;
+            print "Start Reconnection procedure\n";
+            $self->init_reconnect();
+            return;
+        }
 
     } else {
-        warn $!;
-        print "Start Reconnection procedure\n";
-        $self->init_reconnect();
-        return;
+        print "SELECT TIMEOUT\n";
+
     }
 }
 
@@ -104,7 +130,7 @@ sub my_close {
 	shutdown( $self->{ 'socket_m' }, 2);
 	close $self->{ 'socket_m' } ;
     $self->{'socket_m'} = undef;
-
+    croak 'reconnect';
 }
 
 sub init_relay{

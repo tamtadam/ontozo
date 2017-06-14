@@ -23,75 +23,64 @@ function Relay_in_program( relay_data ){
         return this.stop ;
     };
     this.set_stop = function( stop ){
-        if ( this.save_data_to_db( { 'stop' : stop, 'program_id' : this.get_program_id(), 'relay_id' : this.get_relay_id(), 'program_relay_id' : this.get_program_relay_id() } ) ){
-            this.stop = stop ;
-        } else {
-            alert ( "stop is not saved" ) ;
-        }
+    	var _this = this;
+        this.save_data_to_db( {
+        	'stop'             : stop,
+        	'program_id'       : this.get_program_id(),
+        	'relay_id'         : this.get_relay_id(),
+        	'program_relay_id' : this.get_program_relay_id()
+        }, function (){
+        	_this.stop = stop ;
+        }, function() {
+            alert ( "start is not saved" ) ;
+        } ) ;
     };
     this.set_start = function( start ){
-        if ( this.save_data_to_db( { 'start' : start, 'program_id' : this.get_program_id(), 'relay_id' : this.get_relay_id(), 'program_relay_id' : this.get_program_relay_id() } ) ){
-            this.start = start ;
-        } else {
+    	var _this = this;
+        this.save_data_to_db( {
+        	'start'             : start,
+        	'program_id'       : this.get_program_id(),
+        	'relay_id'         : this.get_relay_id(),
+        	'program_relay_id' : this.get_program_relay_id()
+        }, function (){
+        	_this.start = start ;
+        }, function() {
             alert ( "start is not saved" ) ;
-        }
+        } ) ;
     };
     this.remove_relay_in_program = function(){
-        var ret_val = new Object( { 'remove_relay_in_program' : 1 } ) ;
-
         push_cmd("remove_relay_in_program", JSON.stringify( {
         	'program_id' : this.get_program_id(),
         	'relay_id' : this.get_relay_id()
         } ) ) ;
-        ret_val = processor( send_cmd(), ret_val) ;
+        var ret_val = processor( send_cmd()) ;
     }
-    this.save_data_to_db = function( save_data ){
-        var ret_val = new Object( { 'update_relay_prog_data_to_db' : 1 } ) ;
-
-        push_cmd("update_relay_prog_data_to_db", JSON.stringify( save_data ) ) ;
-        ret_val = processor( send_cmd( ASYNC ), ret_val ) ;
-
-        if ( ret_val[ 'update_relay_prog_data_to_db' ] ){
-            return true ;
-        } else {
-            return false ;
-        }
+    this.save_data_to_db = function( save_data, success_callback, error_callback ){
+        push_cmd("update_relay_prog_data_to_db", JSON.stringify( save_data ), success_callback, error_callback ) ;
+        processor( send_cmd( ASYNC ) ) ;
     }
 };
 
 function get_relays_in_programs(){
-    var ret_val = new Object( { 'get_relays_in_programs' : 1 } ) ;
     push_cmd( "get_relays_in_programs", JSON.stringify( new Object( { 'get' : 1 } ) ) ) ;
-    ret_val = processor( send_cmd(), ret_val ) ;
+    var ret_val = processor( send_cmd() ) ;
     if( ret_val[ 'get_relays_in_programs' ] ){
-    	for( var i = 0; i < ret_val[ 'get_relays_in_programs' ].length; i++ ){
-    		G_RELAYS_IN_PROGRAM[ i ] = new Relay_in_program( ret_val[ 'get_relays_in_programs' ][ i ] ) ;
-    	}
+    	G_RELAYS_IN_PROGRAM = $.map( ret_val[ 'get_relays_in_programs' ], function(params, index) {
+    		return new Relay_in_program( params );
+    	});
     }
 }
 
-function removerelay_from_program( id ){
-	var relay_id ;
-	if ( typeof( id ) == "string" ){
-		relay_id = id ;
-	} else {
-		relay_id = this.id ;
-		relay_id = relay_id.replace( '_btn', '' );
-	}
+function removerelay_from_program( relay, program ){
+    remove_by_id( relay.get_id() + "_relay" ) ;
+    return;
+    $.grep( G_RELAYS_IN_PROGRAM, function(item, i) {
+    	return item.get_relay_id() == relay.get_id() && item.get_program_id() == program.get_id()
+    } ).forEach( function( item ) {
+    	item.remove_relay_in_program();
+    } );
 
-    var selected_prog  = $("#program_list").children(":selected").attr("id");
-
-    var relay = G_RELAYS.get_relay_by_id( relay_id ) ;
-    remove_by_id( relay_id + "_relay" ) ;
-    var i ;
-    for( i = 0; i < G_RELAYS_IN_PROGRAM.length; i++ ){
-    	if( G_RELAYS_IN_PROGRAM[ i ].get_relay_id() == relay_id &&
-        	G_RELAYS_IN_PROGRAM[ i ].get_program_id() == selected_prog	){
-    		G_RELAYS_IN_PROGRAM[ i ].remove_relay_in_program();
-    		break ;
-    	}
-    }
-    G_RELAYS_IN_PROGRAM.splice( i, 1 ) ;
+    get_relays_in_programs();
 }
 
 function print_relay_in_program( relays_in_program ){
@@ -99,21 +88,33 @@ function print_relay_in_program( relays_in_program ){
     var new_slid_div  = create_div( { "id" : relays_in_program.get_program_id() + relays_in_program.get_relay_id() + "_slider" }  ) ;
     var p             = create_h6( relays_in_program.get_relay_id() + "_p" ) ;
     var conn          = create_h6( relays_in_program.get_relay_id() + "_prog_conn" ) ;
-    var remove_relay  = create_button_as_img( relays_in_program.get_relay_id() + "_btn", removerelay_from_program, relays_in_program.get_relay_id(), "img/clear.png" ) ;
-
+    var remove_relay  = create_button_as_img( relays_in_program.get_relay_id() + "_btn", function(){
+    	removerelay_from_program( $( this ).data('data').relay, $( this ).data( 'data' ).program);
+    }, relays_in_program.get_relay_id(), "img/clear.png" ) ;
     var relay = G_RELAYS.get_relay_by_id( relays_in_program.get_relay_id() ) ;
     var program = G_PROGRAMS.get_program_by_id( relays_in_program.get_program_id() ) ;
 
-    p.innerHTML = relay.get_name() + ":  " + String( relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM()  ;
+    var relay_struct = {
+		relays_in_program : relays_in_program,
+		program           : program,
+		relay             : relay
+	};
+    $( new_relay_div ).data( 'data', relay_struct );
+    $( new_slid_div ).data( 'data', relay_struct );
+    $( p ).data( 'data', relay_struct );
+    $( conn ).data( 'data', relay_struct );
+    $( remove_relay ).data( 'data', relay_struct );
 
-    new_relay_div.appendChild( p ) ;
-    new_relay_div.appendChild( conn ) ;
-    new_relay_div.appendChild( new_slid_div ) ;
-    new_relay_div.appendChild( remove_relay ) ;
+    $( p ).html( relay.get_name() + ":  " + String( relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM() ) ;
 
-    document.getElementById( "actual_program" ).appendChild( new_relay_div ) ;
+    $( new_relay_div ).append( p ) ;
+    $( new_relay_div ).append( conn ) ;
+    $( new_relay_div ).append( new_slid_div ) ;
+    $( new_relay_div ).append( remove_relay ) ;
 
-    G_RELAYS.print_connections( relay.get_id(), relay.get_id() + "_prog_conn" ) ;
+    $( "#actual_program" ).append( new_relay_div ) ;
+
+    G_RELAYS.print_connections( relay, relay.get_id() + "_prog_conn" ) ;
 
     $( "#" + relays_in_program.get_program_id() + relays_in_program.get_relay_id() + "_slider" ).slider({
       range: true ,
@@ -127,23 +128,21 @@ function print_relay_in_program( relays_in_program ){
       stop: function( event, ui ) {
         relays_in_program.set_start( ui.values[ 0 ] ) ;
         relays_in_program.set_stop( ui.values[ 1 ] ) ;
-        var relay = G_RELAYS.get_relay_by_id( relays_in_program.get_relay_id() ) ;
-
+        var relay = $( this ).data('data').relay ;
+        var program = $( this ).data('data').program ;
         p.innerHTML = relay.get_name() + ":  " + String(  relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM()  ;
         var selected_program  = document.getElementById("program_list").value ;
         //G_RELAYS_IN_PROGRAM[ i ].get_program_id() == selected_prog
 	    for( var cnt = 0; cnt < G_RELAYS_IN_PROGRAM.length; cnt++ ){
-            if( relays_in_program.get_relay_id() == G_RELAYS_IN_PROGRAM[ cnt ].get_relay_id() ){
+            if( relay.get_id() == G_RELAYS_IN_PROGRAM[ cnt ].get_relay_id() ){
                 continue ;
-            } else if( G_RELAYS_IN_PROGRAM[ cnt ].get_program_id() == selected_program ){
+            } else if( G_RELAYS_IN_PROGRAM[ cnt ].get_program_id() == program.get_id() ){
             	var start = G_RELAYS_IN_PROGRAM[ cnt ].get_start() ;
             	var stop  = G_RELAYS_IN_PROGRAM[ cnt ].get_stop() ;
             	var conn_relay = G_RELAYS.get_relay_by_id( G_RELAYS_IN_PROGRAM[ cnt ].get_relay_id() ) ;
-            	if ( (  ui.values[ 0 ] >= start && ui.values[ 0 ] <= stop ) &&
+            	if ( (  ui.values[ 0 ] >= start && ui.values[ 0 ] <= stop ) ||
             			( ui.values[ 1 ] >= start && ui.values[ 1 ] <= stop ) ){
             		p.innerHTML += conn_relay.get_name() + "  ";
-            	} else if(0){
-            		
             	}
             }
         }
@@ -176,61 +175,46 @@ function new_program(){
 
 
 function add_relay_to_program(){
-    var selected_relay = $("#relay_list").children(":selected").attr("id");
-    var selected_prog  = $("#program_list").children(":selected").attr("id");
+    var selected_relay = $("#relay_list").children(":selected").data('data');
+    var selected_prog  = $("#program_list").children(":selected").data('data');
 
     if ( selected_relay == null || selected_prog == null ){
         return ;
     }
 
-    for( var i = 0; i < G_RELAYS_IN_PROGRAM.length; i++ ){
-    	if( G_RELAYS_IN_PROGRAM[ i ].get_relay_id() == selected_relay &&
-    	    G_RELAYS_IN_PROGRAM[ i ].get_program_id() == selected_prog	){
-    		return ;
-    	}
-    }
-    G_RELAYS_IN_PROGRAM[ i ] = new Relay_in_program( {
-    	'relay_id' : selected_relay,
-    	'program_id' : selected_prog,
-    	'start' : DEF_START,
-    	'stop' : DEF_STOP,
-    }) ;
-
-    var ret_val = new Object( { 'add_relay_to_program' : 1 } ) ;
-
     push_cmd("add_relay_to_program", JSON.stringify( {
-    	'relay_id' : selected_relay,
-    	'program_id' : selected_prog,
+    	'relay_id' : selected_relay.get_id(),
+    	'program_id' : selected_prog.get_id(),
     	'start' : DEF_START,
     	'stop' : DEF_STOP,
-    } ) ) ;
-    ret_val = processor( send_cmd(), ret_val) ;
-
-    if ( ret_val[ 'add_relay_to_program' ] ){
-    	print_relay_in_program( G_RELAYS_IN_PROGRAM[ i ] ) ;
-    }
+    } ), function(){
+        get_relays_in_programs();
+    	print_relay_in_program( G_RELAYS_IN_PROGRAM.find( function( relay_in_program ) {
+    		return relay_in_program.get_program_id() == selected_prog.get_id() &&
+    			   relay_in_program.get_relay_id()   == selected_relay.get_id()
+    	} ) )
+    } ) ;
+    processor( send_cmd() ) ;
 }
 
 function print_available_relays(){
-    if( document.getElementById("relay_list") ){
-        document.getElementById("relay_list").innerHTML = "" ;
+    if( $("#relay_list") ){
+        $("#relay_list").html( "" ) ;
     }
 
-    var relays     = G_RELAYS.get_relay_list_to_select_list() ;
-    var relay_list = create_select_list_fea( "relays", "relay_list", relays, add_relay_to_program ) ; //  create_select_list_fea(name, id, list, func) {
-    document.getElementById( "lists" ).appendChild( relay_list ) ;
+    var relay_list = create_select_list_fea( "relays", "relay_list", G_RELAYS.get_relay_list_to_select_list(), add_relay_to_program ) ; //  create_select_list_fea(name, id, list, func) {
+    $( "#lists" ).append( relay_list ) ;
 
 }
 
-function open_program(){
+function open_program( option ){
     $( "#toolbar" ).show() ;
     $( "#repetition_time" ).show() ;
     $( "#program_name" ).show() ;
     $( "#save_prog_data" ).show() ;
 
-    document.getElementById( "actual_program" ).innerHTML = "" ;
-    var selected_prog  = $("#program_list").children(":selected").attr("id");
-    var program = G_PROGRAMS.get_program_by_id( selected_prog ) ;
+    $( "#actual_program" ).html( "" ) ;
+    var program = $( this ).find( ':selected' ).data( 'data' ) ;
     $( "#repetition_time" ).val( program.get_repetition_time() ) ;
     $( "#program_name" ).val( program.get_name() ) ;
 
@@ -277,9 +261,8 @@ $(function() {
         };
       }
       $( this ).button( "option", options );
-        var prog_id = document.getElementById("program_list").value ;
-        var program = G_PROGRAMS.get_program_by_id( prog_id ) ;
-        program.set_status( options.command );
+	  var program = $("#program_list :selected").data('data') ;
+	  program.set_status( options.command );
 
     });
     $( "#stop" ).button({
@@ -289,9 +272,9 @@ $(function() {
       }
     })
     .click(function() {
-       var prog_id = document.getElementById("program_list").value ;
-       var program = G_PROGRAMS.get_program_by_id( prog_id ) ;
-       program.set_status( execution.STOP ) ;
+  	  var program = $("#program_list :selected").data('data') ;
+	  program.set_status( options.command );
+      program.set_status( execution.STOP ) ;
       $( "#play" ).button( "option", {
         label: "play",
         icons: {
@@ -299,9 +282,5 @@ $(function() {
         }
       });
     });
-
-
   });
-
-
 

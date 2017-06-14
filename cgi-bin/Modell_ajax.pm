@@ -11,6 +11,9 @@ use Errormsg       ;
 use Log         ;
 use OBJECTS     ;
 use feature qw(state);
+use DBDispatcher qw( convert_sql );
+use English qw' -no_match_vars ';
+use File::Slurp;
 
 our @ISA = qw( prog_relay program relay run_status Errormsg connections OBJECTS) ;
 
@@ -46,6 +49,13 @@ sub init_objects{
     }
 }
 
+sub get_stdout {
+    my $self = shift;
+    my @text = read_file( $self->get_stdout_log_path() ) ;
+
+    return { text => \@text };
+}
+
 sub check_status_of_objects{
     my $self = shift;
     my $idx = 0;
@@ -59,22 +69,28 @@ sub execute_command{
     state $ping_cnt     = 0;
     my $is_running_prog = 0;
 
-    foreach my $obj ( $self->PROGRAM_LIST() ) {
-        $obj->execute_command();
-        if ($obj->is_act_time_between_start_stop()) {
+    foreach my $program ( $self->PROGRAM_LIST() ) {
+        $program->force_relay_stop_if_program_is_not_set_properly();
+
+        if ($program->its_time_for_the_execution() ) {
+            $program->execute_relays_in_program();
             $is_running_prog = 1;
+
         };
     }
     if ($is_running_prog == 0) {
-        print "No running program, its time of free execution\n";
+        print "N O   R U N N I N G   P R O G R A M ,   I T S   T I M E   O F   F R E E   E X E C U T I O N\n";
         foreach my $relay ( $self->RELAYS() ) {
+            print "\n*******\nHANDLING: " . $relay->NAME() . "\n";
             $relay->check_for_update();
-            $relay->execute_command();
+            $relay->execute_command( {
+                master_enabled => 1
+            } );
         }
     }
     if( ( $ping_cnt ) % 4 == 3 ) {
         foreach my $relay ( $self->RELAYS() ) {
-            $relay->update_connected( rn171::_ping($relay) );
+            #$relay->update_connected( rn171::_ping($relay) );
         }
     }
     $ping_cnt++;

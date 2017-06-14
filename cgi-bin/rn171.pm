@@ -25,35 +25,35 @@ Readonly::Hash my %hash => (
     CURRENTMODE   => "C",
     GETALLSTATES  => "D",
 
-    CHANNEL1STATE => "F",
-    CHANNEL2STATE => "G",
-    CHANNEL3STATE => "H",
-    CHANNEL4STATE => "I",
-    CHANNEL5STATE => "J",
-    CHANNEL6STATE => "K",
-    CHANNEL7STATE => "L",
-    CHANNEL8STATE => "M",
+    STATE1 => "F",
+    STATE2 => "G",
+    STATE3 => "H",
+    STATE4 => "I",
+    STATE5 => "J",
+    STATE6 => "K",
+    STATE7 => "L",
+    STATE8 => "M",
 
     ALLRELAYON    => "d",
     ALLRELAYOFF   => "n",
 
-    RELAY1ON      => "e",
-    RELAY2ON      => "f",
-    RELAY3ON      => "g",
-    RELAY4ON      => "h",
-    RELAY5ON      => "i",
-    RELAY6ON      => "j",
-    RELAY7ON      => "k",
-    RELAY8ON      => "l",
+    '1ON'      => "e",
+    '2ON'      => "f",
+    '3ON'      => "g",
+    '4ON'      => "h",
+    '5ON'      => "i",
+    '6ON'      => "j",
+    '7ON'      => "k",
+    '8ON'      => "l",
 
-    RELAY1OFF     => "o",
-    RELAY2OFF     => "p",
-    RELAY3OFF     => "q",
-    RELAY4OFF     => "r",
-    RELAY5OFF     => "s",
-    RELAY6OFF     => "t",
-    RELAY7OFF     => "u",
-    RELAY8OFF     => "v",
+    '1OFF'     => "o",
+    '2OFF'     => "p",
+    '3OFF'     => "q",
+    '4OFF'     => "r",
+    '5OFF'     => "s",
+    '6OFF'     => "t",
+    '7OFF'     => "u",
+    '8OFF'     => "v",
 
     CLOSE         => "close",
 
@@ -85,6 +85,26 @@ sub _ping {
     return $res;
 }
 
+sub get_status {
+    my $relay_hr = shift;
+    my $req_func = shift;
+    my $wifly = get_connection( $relay_hr );
+    unless ( $wifly ) {
+        print "No connection: " . $relay_hr->NAME . "\n" and return undef ;
+    }
+    print "GETALLSTATES:" . $rn171->GETALLSTATES . "\n";
+    if ( my @recv = $wifly->send_msg( $rn171->GETALLSTATES, 1) ) {
+        $relay_hr->update_connected( 1 );
+        my $status = $recv[1]->[-1]->{ unpackbs };
+        return [ split "", $status ]->[ $relay_hr->POS() - 1 ];
+
+    } else {
+        delete_connection( $relay_hr );
+        $relay_hr->update_connected( 0 );        
+        return;
+    }
+}
+
 sub send_command_to_relay {
     my $relay_hr = shift;
     my $req_func = shift;
@@ -106,11 +126,24 @@ sub send_command_to_relay {
         unless ( $wifly->send_msg($rn171->$func) ) {
             delete_connection( $relay_hr );
             $relay_hr->update_connected( 0 );
+        } else {
+            $relay_hr->update_connected( 1 );
         }
+
     } else {
 
 
     }
+}
+
+sub send_message_from {
+    my $relay_hr = shift;   
+    my $msg = shift;
+    my $wifly = get_connection( $relay_hr );
+    
+    my $res = $wifly->send_msg( $msg, 1);
+
+    return $res;
 }
 
 sub show_rssi {
@@ -145,7 +178,7 @@ sub get_connection {
             $active_connections->{ $relay_hr->IP } = client_tcp->new({
                                                             'host'          => $relay_hr->IP ,
                                                             'port'          => $relay_hr->PORT || 2000 ,
-                                                            'autoconn'      => $relay_hr->AUTOCONN ,
+                                                            'autoconn'      => $relay_hr->AUTOCONN || 1,
                                                             'connect_retry' => $relay_hr->CONNECT_RETRY // 600 ,
             });
             sleep(2);

@@ -96,6 +96,10 @@ sub update_status{
             "program_id" => $self->get_id() ,
         }
     } ) ;
+    if( $_[ 0 ] == run_status->RUNNING ) {
+        $self->execute_sql( "UPDATE program SET time_of_last_start = DATE_SUB(time_of_last_start, INTERVAL 10 DAY)" . " WHERE program_id = ?", $self->get_id() ) ;
+
+    }
     if( $res ){
         $self->{ 'run_status_id' } = $_[ 0 ] ;
         $self->RUN_STATUS_ID( $_[ 0 ] );

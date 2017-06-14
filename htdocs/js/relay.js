@@ -62,66 +62,32 @@ var accordion_mc = null;
 
 
 function Relays ( relays_data, connections ) {
-    this.relays = new Object() ;
-    this.connections = connections ;
-    for( var relay_id in relays_data ){
-        this.relays[ relay_id ] = new Relay( relays_data[ relay_id  ] ) ;
-    }
+	_this = this;
+	_this.connections = connections ;
+	_this.relays = $.map( relays_data, function( relay_data, relay_id ){
+    	return new Relay( relay_data ) ;
+    }) ;
 }
 
 
-function delete_connection( relay_id_p, remove_parent ){
-	var relay_id ;
-	var from ;
-	
-	if( typeof( relay_id_p ) == "string" ||
-		typeof( relay_id_p ) == "number" ){
-		relay_id = relay_id_p ;		
-
-	} else {
-		relay_id = this.id ;
-		relay_id  = relay_id.replace( 'delete_connection', '' ) ;
-
-	}
-
-	var relay = G_RELAYS.get_relay_by_id( relay_id )   ;
-	if ( relay && document.getElementById( "delete_connection" + relay.get_id() ) ){
-		from = document.getElementById( "delete_connection" + relay.get_id() ).parentNode.id ;
-		from = from.replace( '_connections', '' ) ;
-	}
-
-	if ( remove_parent ){
-    	from = relay_id_p ;
-    	G_RELAYS.connections[ from ] = [] ;
-    } else {
-    	for( var idx in G_RELAYS.connections[ from ] ){
-    		if( G_RELAYS.connections[ from ][ idx ] == relay.get_id() ){
-    			G_RELAYS.connections[ from ].splice( idx, 1 );
-    			break ;
-    		}
-    	}
-    	
-    }
+function delete_connection( connected_relay, parent_relay ){
     push_cmd("delete_connection", JSON.stringify(
     											  {
-    												"child"  : ( remove_parent == 0 ? relay.get_id() : null ),
-    												"parent" : from
+    												"child"  : ( connected_relay != null ? connected_relay.get_id() : null ),
+    												"parent" : ( parent_relay    != null ? parent_relay.get_id()    : null ),
     											  } ) ) ;
     processor( send_cmd() ) ;
-    get_connections();
-    G_RELAYS.print_connections( from, from + "_connections" );
+    G_RELAYS.connections= get_connections();
 }
 
 
 Relays.prototype.add_new_relay = function( data ){
-    var ret_val = new Object( { 'add_new_relay' : 1 } ) ;
-
     push_cmd( "add_new_relay", JSON.stringify( new Object( data ) ) ) ;
-    ret_val = processor( send_cmd(), ret_val ) ;
+    ret_val = processor( send_cmd() ) ;
     data    = ret_val[ 'add_new_relay' ]       ;
 
     if ( data.relay_id != null ){
-        this.relays[ data.id ] = new Relay( data ) ;
+        this.relays.push( new Relay( data ) ) ;
         create_on_off_for_relay() ;
     } else {
         alert( "relay is not added" ) ;
@@ -130,84 +96,79 @@ Relays.prototype.add_new_relay = function( data ){
 }
 
 Relays.prototype.get_relay_list_to_select_list = function(){
-    var sel_rel = new Array();
-    var cnt     = 0 ;
-    for ( var relay in this.relays ){
-        sel_rel[ cnt ]       = new Object();
-        sel_rel[ cnt ].id    = this.relays[ relay ].get_id();
-        sel_rel[ cnt ].title = this.relays[ relay ].get_name();
-        cnt++ ;
-    }
-    return sel_rel ;
+    return $.map( this.relays, function( relay, index ) {
+    	return { id : relay.get_id(), title : relay.get_name(), data : relay };
+    } ) ;
 };
 
 Relays.prototype.add_new_connections = function( from, to ){
-    if( this.connections[ from ] == null ){
-    	this.connections[ from ] = new Array() ;
-    }
-
-    this.connections[ from ].push( to ) ;
     push_cmd("add_new_connections", JSON.stringify( { "parent" : from, "child" : to } ) ) ;
     processor( send_cmd() ) ;
+    this.connections = get_connections();
 }
 
 function get_connections(async_){
-    var ret_val = new Object( { 'get_connections' : 1 } ) ;
     push_cmd( "get_connections", JSON.stringify( new Object( { 'get' : 1 } ) ) ) ;
-    ret_val = processor( send_cmd(async_), ret_val ) ;
+    var ret_val = processor( send_cmd(async_) ) ;
     CONNECTIONS = ret_val[ 'get_connections' ] ;
+    return CONNECTIONS;
 }
 
 function get_relay_list(async_){
-    var ret_val = new Object( { 'get_relay_list' : 1 } ) ;
     push_cmd( "get_relay_list", JSON.stringify( new Object( { 'get' : 1 } ) ) ) ;
-    ret_val = processor( send_cmd(async_), ret_val ) ;
+    var ret_val = processor( send_cmd(async_) ) ;
     RELAYS = ret_val[ 'get_relay_list' ] ;
 }
 
 
-Relays.prototype.print_connections = function( relay_id, html_id ){
-    var p = document.getElementById( html_id ) ;
-    p.innerHTML =  "" ;
-    for( var idx in this.connections[ relay_id ] ){
-    		relay = G_RELAYS.get_relay_by_id( this.connections[ relay_id ][ idx ] ) ;
-    		h1 = create_h4( relay.get_name() ) ;
-    		h1.innerHTML = relay.get_name();
-    		remove_btn = create_button_as_img( "delete_connection" +  relay.get_id(), delete_connection, "delete", "img/clear.png" ) ;
-    		p.appendChild( h1 );
-    		p.appendChild( remove_btn );
-	}
+Relays.prototype.print_connections = function( relay, html_id ){
+    var p = $( '#' + html_id ) ;
+    p.html("") ;
+    for( var idx in this.connections[ relay.get_id() ] ){
+    	var connected_relay = G_RELAYS.get_relay_by_id( this.connections[ relay.get_id() ][ idx ] );
+		h1 = create_h4( 'connected_' + connected_relay.get_id() ) ;
+		h1.innerHTML = connected_relay.get_name();
+		
+		remove_btn = create_button_as_img( "delete_connection" +  connected_relay.get_id(), function(){
+			delete_connection( $( this ).data( 'data' ), $(this).parent().parent().data( 'data' ) );
+		    G_RELAYS.print_connections( $(this).parent().parent().data( 'data' ), $(this).parent().parent().data( 'data' ).get_id() + "_connections" );
+		}, "delete", "img/clear.png" ) ;
+		
+		$( remove_btn ).data('data', connected_relay);
+		p.append( h1 );
+		p.append( remove_btn );
+    }
 }
 
 Relays.prototype.get_relay_id_by_name = function( name ){
-    for ( var idx in this.relays ){
-        if( this.relays[ idx ].get_name() == name ){
-            return this.relays[ idx ].get_id() ;
-        }
-    }
+	return this.relays.find( function( relay ){
+		return relay.get_name() == name
+	}).get_id();
 }
 
 Relays.prototype.get_relay_by_id = function( id ){
-    for ( var idx in this.relays ){
-        if( this.relays[ idx ].get_id() == id ){
-            return this.relays[ idx ] ;
-        }
-    }
+	return this.relays.find( function( relay ){
+		return relay.get_id() == id
+	})
+}
+
+Relays.prototype.get_relay_by_name = function( name ){
+	return this.relays.find( function( relay ){
+		return relay.get_name() == name
+	})
 }
 
 Relays.prototype.get_relays_to_acomplete = function( rel_id ){
-    var relay_list = new Array();
-    var cnt        = 0 ;
-    for ( var idx in this.relays ){
-        if( this.relays[ idx ].get_id() != rel_id ){
+	var _this = this;
 
-            relay_list[ cnt ] = new Object();
-            relay_list[ cnt ].name  = this.relays[ idx ].get_id() ;
-            relay_list[ cnt ].label = this.relays[ idx ].get_name() ;
-            cnt++ ;
-        }
-    }
-    return relay_list ;
+    return $.map(
+    	$.grep( _this.relays,
+		function( relay, index ){
+    		return relay.get_id() != rel_id
+    	}),
+    	function( relay, index ){
+    		return {  name : relay.get_name(), label : relay.get_name() }
+    });
 } ;
 
 function Relay( relay_data ){
@@ -291,10 +252,8 @@ function Relay( relay_data ){
     this.save_relay_data_to_db = function( save_data ){
         save_data.id = this.get_id() ;
 
-        var ret_val = new Object( { 'save_relay_data_to_db' : 1 } ) ;
-
         push_cmd("save_relay_data_to_db", JSON.stringify( save_data ) ) ;
-	    ret_val = processor( send_cmd(), ret_val) ;
+	    var ret_val = processor( send_cmd() ) ;
 
 	    if ( ret_val[ 'save_relay_data_to_db' ] ){
             return true ;
@@ -315,10 +274,8 @@ function remove_rel_from_prog( slider, prog ){
 }
 
 function save_relay_data(){
-    var relay_id  = this.id ;
-
-    relay_id  = relay_id.replace( 'save_relay_data', '' ) ;
-    var relay = G_RELAYS.get_relay_by_id( relay_id ) ;
+    var relay = $( this ).data( 'data' ) ;
+	var relay_id  = relay.get_id() ;
 
     var value = $("#name_" + relay_id ).val() ;
     if ( value && relay.get_name() != value ){
@@ -336,34 +293,25 @@ function save_relay_data(){
     }
 
     print_available_relays() ;
-
-    if( document.getElementById( relay_id + "_p" ) ){
-        document.getElementById( relay_id + "_p" ).innerHTML = document.getElementById( relay_id + "_p" ).innerHTML.replace( /\w+/, relay.get_name() ) ;
-    }
 }
 
-function delete_relay(){
-	var relay_id = this.id ;
-    relay_id  = relay_id.replace( 'delete_relay', '' ) ;
-    var relay = G_RELAYS.get_relay_by_id( relay_id )   ;
-
-    removerelay_from_program( relay.get_id() ) ;
-
+function delete_relay( relay ){
+    delete_connection( relay );
     relay.delete_it() ;
+
     get_relay_list() ;
     get_relays_in_programs() ;
     get_connections();
 
     G_RELAYS = new Relays( RELAYS, CONNECTIONS );
-    //TODO
-    delete_connection( relay_id, 1 );
+
     print_available_relays() ;
     create_on_off_for_relay();	
 }
 
 function create_on_off_for_relay(){
-    var manual_control = document.getElementById( "manual_control" ) ;
-    manual_control.innerHTML = '' ;
+    var manual_control = $( "#manual_control" ) ;
+    manual_control.html('') ;
     var on_input  = new Object( {
         'id'      : "on"    ,
         'type'    : "radio" ,
@@ -396,18 +344,25 @@ function create_on_off_for_relay(){
 
     for( var idx in G_RELAYS.relays ){
         relay = G_RELAYS.relays[ idx ] ;
+
         var list_head = create_h3( relay.get_name() + "not_used");
         list_head.innerHTML = relay.get_name() ;
+
         var list_div = create_div( {id : relay.get_name()} );
+        $( list_div ).data('data', relay);
+
         if( relay.get_connected() == 1 ) {
         	list_div.style.backgroundColor = '#e6ffe6';
         } else {
         	list_div.style.backgroundColor = '#ffebe6';
         }
+
         on_input  = new Object( {
             'type'    : "radio" ,
             'checked' : false   ,
         } ) ;
+
+
     	off_input = new Object( {
             'type'    : "radio"   ,
             'checked' : false     ,
@@ -455,26 +410,22 @@ function create_on_off_for_relay(){
                             "name" : "auto_" + relay.get_id(),
                             "type" : "input"
                        } ) ;
+        $( auto ).data('data', relay);
+    	$( off_input ).data('data', relay);
+        $( on_input ).data('data', relay);
 
         ip.value       = relay.get_ip() ;
         name.value     = relay.get_name() ;
         position.value = relay.get_pos() ;
 
         save_na      = create_button_as_img( "save_relay_data" +  relay.get_id(), save_relay_data, "add", "img/save.png" ) ;
-        delete_rel   = create_button_as_img( "delete_relay" +  relay.get_id(), delete_relay, "delete", "img/clear.png" ) ;
-    	/*row_id = add_row_to_table( "on_off", {
-			"id"   : "row_" + relay.get_id() ,
-			"name" : relay.get_name() ,
-			"btn_list" : [ on, on_label, off, off_label,
-			               document.createElement( 'br' ), document.createTextNode( "ip:" ), ip ,
-			               document.createElement( 'br' ), document.createTextNode( "name:" ), name ,
-			               document.createElement( 'br' ), document.createTextNode( "position:" ), position ,
-			               document.createElement( 'br' ), document.createTextNode( "kapcsoló relay:" ), auto ,
-			               p,save_na,
-			               delete_rel,
-			               document.createElement( 'br' )
-			]
-    	} ) ;*/
+        $( save_na ).data( 'data', relay );
+        delete_rel   = create_button_as_img( "delete_relay" +  relay.get_id(), function(){
+        	var relay = $( this ).data( 'data' );
+        	delete_relay( relay );
+        }, "delete", "img/clear.png" ) ;
+        $( delete_rel ).data( 'data', relay );
+
     	list_div.appendChild(on);
     	list_div.appendChild(on_label);
     	list_div.appendChild(off);
@@ -489,35 +440,34 @@ function create_on_off_for_relay(){
     	list_div.appendChild(document.createTextNode( "position:" ));
     	list_div.appendChild(position);
     	list_div.appendChild(document.createElement( 'br' ));
-    	list_div.appendChild(document.createTextNode( "kapcsoló relay:" ));
+    	list_div.appendChild(document.createTextNode( "mester relay:" ));
     	list_div.appendChild(auto);
     	list_div.appendChild(p);
     	list_div.appendChild(save_na);
     	list_div.appendChild(delete_rel);
-    	manual_control.appendChild(list_head);
-    	manual_control.appendChild(list_div);
-        G_RELAYS.print_connections( relay.get_id(), relay.get_id() + "_connections" );
+    	manual_control.append(list_head);
+    	manual_control.append(list_div);
+        G_RELAYS.print_connections( relay, relay.get_id() + "_connections" );
 
         $( "#" + on_input.id ).button().click(function() {
-	        var relay = G_RELAYS.get_relay_by_id( this.name ) ;
+	        var relay = $( this ).parent().data( 'data' ) ;
 	        relay.set_status( execution.START ) ;
 	    });
 
 	    $( "#" + off_input.id ).button().click(function() {
-            var relay = G_RELAYS.get_relay_by_id( this.name ) ;
+            var relay = $( this ).parent().data( 'data' ) ;
             relay.set_status( execution.STOP ) ;
         });
 
         $("#" + auto.id ).autocomplete({
 	        source: relay_autocomplete,
 	        select: function(event, ui) {
-			    var relay_id  = this.id ;
-			    relay_id  = relay_id.replace( 'auto_', '' ) ;
+	        	var relay     = $( this ).data( 'data' ) ;
+			    var relay_id  = relay.get_id() ;
 			    G_RELAYS.add_new_connections( relay_id, G_RELAYS.get_relay_id_by_name( ui.item.value ) ) ;
-			    G_RELAYS.print_connections( relay_id, relay_id + "_connections" ) ;
+			    G_RELAYS.print_connections( relay, relay.get_id() + "_connections" ) ;
 	        },
 	    });
-
     }
     if( accordion_mc == null ) {
     	accordion_mc = $( "#manual_control" ).accordion({

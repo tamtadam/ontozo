@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  <script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script type="text/javascript" src="js/Cookie.js"></script>
+  <script type="text/javascript" src="js/CommonVariables.js"></script>
+  <script type="text/javascript" src="js/GlobalVariables.js"></script>
+  <script type="text/javascript" src="js/Processor.js"></script>
+  <script type="text/javascript" src="js/Ajax.js"></script>
+  <script type="text/javascript" src="js/UseFullFunctions.js"></script>
+
+</head>
+<body>
+<div id="error">
+</div>
+<font face="monospace">
+<div id='stdout'>
+</div>
+</font>
+</body>
+    <input type="submit" value="Logging">
+  <script>
+    var enabled = 1;
+    $(function() {
+    	$( "input" ).button();
+    	$( "input" ).click( function() {
+    		if( enabled ) {
+    			enabled = 0;
+    			$('input').val('disabled');
+    		} else {
+    			enabled = 1;
+    			$('input').val('enabled');
+    		}
+  	    } );
+        setInterval(function(){
+        	if (enabled) {
+                push_cmd("get_stdout", JSON.stringify( { get : 1 } ) ) ;
+                var ret_val = processor( send_cmd() ) ;
+                $('#stdout').html( ret_val.get_stdout.text.join('<br>') );
+        	}
+        }, 5000);
+    });
+  </script>
+</html>

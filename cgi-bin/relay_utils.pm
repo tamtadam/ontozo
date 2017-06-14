@@ -50,7 +50,7 @@ sub update_is_needed{
 sub is_act_time_between_start_stop{
     my $self = shift;
 
-    return 0 unless $self->START and $self->STOP ;
+    return 0 unless defined $self->START and defined $self->STOP ;
 
     my $act_time_in_sec = $self->convert_localtime_to_sec(localtime(time));
 

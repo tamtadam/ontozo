@@ -9,10 +9,12 @@ use run_status      ;
 use relay_utils     ;
 use Carp            ;
 use rn171 qw($rn171);
+use List::Util qw(first max maxstr min minstr reduce shuffle sum);
 
 our @ISA = qw( DBH relay_utils Log run_status );
 
 our $VERSION = '0.02';
+my $relay_store = {};
 
 sub new {
     my ($class) = shift;
@@ -20,23 +22,38 @@ sub new {
     my $self = {};
     bless( $self, $class );
     $self = $self->init( @_ );
-
     return $self;
 }
 
 sub init {
-    my $self = shift;
+    my $self         = shift;
     my $relay_params = shift;
+    my $update_needed = delete $relay_params->{ update_needed };
+
     eval '$self->' . "$_" . '::init(@_)' for @ISA;
+
+    #return $relay_store->{$relay_params->{ "relay_id" } } if $relay_params->{ "relay_id" } && $relay_store->{$relay_params->{ "relay_id" } } && !$update_needed ;
 
     if ( $relay_params->{ "relay_id" } ) {
         my $relay_data = $self->my_select({
-            "select" => "ALL"  ,
-            "from"   => "relay",
+            "select" => [
+                "r.relay_id      as relay_id",
+                "r.name          as name",
+                "r.ip            as ip",
+                "r.run_status_id as run_status_id",
+                "r.pos           AS pos",
+                "r.last_modified AS last_modified",
+                "r.connected     AS connected",
+                "pr.start        AS start",
+                "pr.stop         AS stop"
+            ],
+            "from"   => "relay as r",
+            "join"   => "LEFT JOIN program_relay as pr ON (r.relay_id = pr.relay_id)",
             "where"  => {
-                'relay_id' => $relay_params->{ "relay_id" } ,
+                'r.relay_id' => $relay_params->{ "relay_id" } ,
             }
         });
+
         return undef unless $relay_data ;
         $relay_data->[ 0 ]->{ act_status_id } = -1;
         $self->read_data_to_from_db_to_obj( $relay_data->[ 0 ] );
@@ -44,17 +61,20 @@ sub init {
         delete $relay_params->{ $_ } for keys %{$relay_data->[ 0 ] };
         $self->read_data_to_from_db_to_obj( $relay_params );
 
+        $self->init_master_relays() unless( $relay_params->{ not_to_connect_master } );
+        #$relay_store->{ $self->RELAY_ID() } = $self;
+        return $self;
+        return $relay_store->{ $self->RELAY_ID() };
+
     } else {
         $self->add_autoload_method( 'IP',            $relay_params->{ip} );
         $self->add_autoload_method( 'PORT',          $relay_params->{port} );
         $self->add_autoload_method( 'CONNECT_RETRY', $relay_params->{connect_retry} );
         $self->add_autoload_method( 'AUTOCONN',      $relay_params->{autoconn} );
         $self->add_autoload_method( 'PING_RETRY',    $relay_params->{ping_retry} );
+        return $self;
     }
-
-    return $self;
 }
-
 
 sub check_for_update {
     my $self = shift;
@@ -67,11 +87,46 @@ sub check_for_update {
     });
     my $update_needed = ( ( $self->LAST_MODIFIED()) and ( $self->update_is_needed( $self->LAST_MODIFIED(), $act_time->[0]->{ 'last_modified' } ) ) );
     if( $update_needed ){
-        $self->init({
-            'relay_id' => $self->RELAY_ID(),
+        $self = $self->init({
+            'relay_id'      => $self->RELAY_ID(),
+            'update_needed' => 1
         });
     }
     return $update_needed;
+}
+
+sub init_master_relays {
+    my $self = shift;
+    my $relay_id = shift || $self->RELAY_ID() || return ;
+    print 'Start init_master_relays of ' . $self->NAME() . "\n";
+    $self->add_autoload_method( 'MASTERS', []);
+
+    my $masters = $self->my_select({
+         'from'   => 'connected_relay as cr',
+         'select' => [
+                        'c.relay_id       AS relay_id',
+                        'c.ip             AS ip',
+                        'c.last_modified  AS last_modified',
+                        'c.name           AS name',
+                        'c.run_status_id  AS run_status_id',
+                        'c.pos            AS pos'
+         ],
+         'join'  => '
+            JOIN relay as p on (cr.parent = p.relay_id)
+            JOIN relay as c  on (cr.child  = c.relay_id )
+         ',
+         'where' => {
+                      "p.relay_id" => $relay_id
+          },
+    });
+
+    foreach my $master( @{ $masters } ) {
+        $master->{ not_to_connect_master } = 1;
+        my $new_relay = relay->new( $master );
+        print "Add master: " . $new_relay->NAME() . "\n";
+        $self->MASTERS( $new_relay ) if $new_relay;
+    }
+    return $self;
 }
 
 sub get_connections{
@@ -94,7 +149,27 @@ sub get_connections{
 
 sub show_rssi {
     my $self = shift;
+    print "show_rssi\n";
     rn171::show_rssi( $self );
+}
+
+sub get_status_via_wifi {
+    my $self = shift;
+    my $pos = $self->POS() || return;
+
+    my $status = rn171::get_status( $self );
+    return $status;
+};
+
+sub send_stdout {
+    my $self = shift;
+    my $stdin ;
+    while( 1 ) {
+        print "Wait for input\n";
+        $stdin = <>;
+        print rn171::send_message_from( $self, $stdin, 1 );
+        print "ready\n";
+    }
 }
 
 sub test {
@@ -103,11 +178,29 @@ sub test {
 
 sub execute_command{
     my $self = shift;
+    my $params = shift || {};
+
     rn171::send_command_to_relay( $self );
     $self->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
+    print "act running masters: " . ( join ",", @{ $params->{ act_running_masters } || [] }) . "\n";
+    if ( $params->{  master_enabled } ) {
+        print "Masters should follow me: " . $self->NAME() . "\n";
+        foreach my $master ( grep{ $_} $self->MASTERS() ) {
+            next if !grep{ $master->RELAY_ID() == $_ } @{ $params->{ act_running_masters } || [] } ;
+            print $master->NAME() . " will follow you\n";
+            $master->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
+            $master->RUN_STATUS_ID( $self->RUN_STATUS_ID() );
+            rn171::send_command_to_relay( $master );
+        }
+    }
+
     return 1;
 }
 
+sub get_master_list {
+    my $self = shift;
+    return [ map{ $_->RELAY_ID() } $self->MASTERS() ];
+}
 
 sub delete_connection{
     my $self = shift ;
@@ -123,7 +216,8 @@ sub delete_relay{
     my $self = shift ;
 
     my $relay = relay->new({
-        "relay_id" => $_[ 0 ]->{ 'relay_id' }
+        "relay_id"              => $_[ 0 ]->{ 'relay_id' },
+        "not_to_connect_master" => 1
     });
 
     $relay->delete_it() ;
@@ -247,20 +341,23 @@ sub get_ip{
 }
 
 sub update_status{
-    my $self = shift ;
+    my $self   = shift ;
+    my $new_status = shift || return ;
+    my $params = shift || {};
+
     my $res = $self->my_update( {
         "table"  => "relay",
         "update" => {
-            "run_status_id" => $_[ 0 ],
+            "run_status_id" => $new_status,
         },
         "where" => {
             "relay_id" => $self->get_id() ,
         }
     } ) ;
     if( $res ){
-        $self->{ 'run_status_id' } = $_[ 0 ] ;
-        $self->RUN_STATUS_ID( $_[ 0 ] );
-        $self->_update_timestamp_in_table( "relay", "relay_id", $self->RELAY_ID );
+        $self->{ 'run_status_id' } = $new_status ;
+        $self->RUN_STATUS_ID( $new_status );
+        $self->_update_timestamp_in_table( "relay", "relay_id", $self->RELAY_ID ) if $params->{ db_store };
     }
 }
 
@@ -268,7 +365,7 @@ sub connect {
 
 }
 
-sub get_status{
+sub get_status_{
     return $_[ 0 ]->{ "run_status_id" } ;
 }
 
@@ -313,7 +410,8 @@ sub save_relay_data_to_db{
     };
 
     my $relay = relay->new({
-        "relay_id" => $_[ 0 ]->{ 'id' }
+        relay_id              => $_[ 0 ]->{ 'id' },
+        not_to_connect_master => 1
     });
 
     my $update_items = [ grep ( $_ ne "id" && $_ ne "uid", keys %{ $_[ 0 ] } ) ] ;
@@ -321,7 +419,7 @@ sub save_relay_data_to_db{
     foreach my $update_item ( @{ $update_items } ) {
         my $update_func = "update_" . $update_item ;
         eval{
-            $relay->$update_func( $_[ 0 ]->{ $update_item } ) ;
+            $relay->$update_func( $_[ 0 ]->{ $update_item }, { db_store => 1 } ) ;
         } ;
     }
     $self->_update_timestamp_in_table( "relay", "relay_id", $_[ 0 ]->{ 'id' } );
