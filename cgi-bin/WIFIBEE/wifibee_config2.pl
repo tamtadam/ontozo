@@ -12,6 +12,8 @@ use lib $FindBin::RealBin . ( $OSNAME =~/win/i ? "/../../ontozo/" : "/../../cgi-
 use lib $FindBin::RealBin . "/../";
 use lib $FindBin::RealBin . "/../../../common/cgi-bin/";
 
+$ENV{ ENABLE_STDOUT } = 1;
+
 use client_tcp;
 use Cfg;
 use Carp;
@@ -26,6 +28,7 @@ use Log qw($LOG_ENABLED);
 #} );
 $Log::LOG_ENABLED = 0;
 my $cfg = read_cfg(@ARGV);
+print Dumper $cfg;
 execute_commands( $cfg->{ 'COMMANDS' } );
 #add_to_db($cfg);
 
@@ -42,26 +45,33 @@ sub read_cfg {
     untie %cfg;
     return \%rcfg;
 }
-
+my @recv;
 sub execute_commands {
     my $wifly = client_tcp->new({
-                            'host' => "192.168.0.240" ,
-                            'port' => 2000          ,
+#                            'host' => "1.2.3.4" ,
+                            'host' => "192.168.1.1" ,
+                            'port' => 2000      ,
     });
     $wifly->connect();
     my $command_list = shift // [];
-    print $wifly ->my_recv();
+    @recv = $wifly ->my_recv();
+    print $recv[0] . "\n";
     $wifly->send_msg( '$$$' ) ;
-    print $wifly ->my_recv();
+    @recv = $wifly ->my_recv();
+    print $recv[0] . "\n";
     $wifly->send_msg( "" ) ;
-    print $wifly ->my_recv();
+    @recv = $wifly ->my_recv();
+    print $recv[0] . "\n";
 
     foreach my $command ( @{ $command_list } ) {
+        print "command:" . $command . "\n";
         $wifly ->send_msg( $command ) ;
-        print $wifly ->my_recv() . "\n";
+        @recv = $wifly ->my_recv();
+        print $recv[0] . "\n";
         sleep( 1 ) ;
         $wifly ->send_msg( "save\n" ) ;
-        print $wifly ->my_recv() . "\n";
+        @recv = $wifly ->my_recv();
+        print $recv[0] . "\n";
         sleep( 2 ) ;
     }
 }

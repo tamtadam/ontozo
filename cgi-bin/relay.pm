@@ -67,11 +67,13 @@ sub init {
         return $relay_store->{ $self->RELAY_ID() };
 
     } else {
-        $self->add_autoload_method( 'IP',            $relay_params->{ip} );
-        $self->add_autoload_method( 'PORT',          $relay_params->{port} );
-        $self->add_autoload_method( 'CONNECT_RETRY', $relay_params->{connect_retry} );
-        $self->add_autoload_method( 'AUTOCONN',      $relay_params->{autoconn} );
-        $self->add_autoload_method( 'PING_RETRY',    $relay_params->{ping_retry} );
+
+        foreach ( qw( ip port connect_retry autoconn ping_retry name) ) {
+            if( exists $relay_params->{ $_ } ) {
+                $self->add_autoload_method( uc $_, $relay_params->{ $_ } );
+            }
+        }
+
         return $self;
     }
 }
@@ -98,7 +100,7 @@ sub check_for_update {
 sub init_master_relays {
     my $self = shift;
     my $relay_id = shift || $self->RELAY_ID() || return ;
-    print 'Start init_master_relays of ' . $self->NAME() . "\n";
+    Log::log_info 'Start init_master_relays of ' . $self->NAME() . "\n";
     $self->add_autoload_method( 'MASTERS', []);
 
     my $masters = $self->my_select({
@@ -123,7 +125,7 @@ sub init_master_relays {
     foreach my $master( @{ $masters } ) {
         $master->{ not_to_connect_master } = 1;
         my $new_relay = relay->new( $master );
-        print "Add master: " . $new_relay->NAME() . "\n";
+        Log::log_info "Add master: " . $new_relay->NAME() . "\n";
         $self->MASTERS( $new_relay ) if $new_relay;
     }
     return $self;
@@ -149,8 +151,9 @@ sub get_connections{
 
 sub show_rssi {
     my $self = shift;
-    print "show_rssi\n";
-    rn171::show_rssi( $self );
+    Log::log_info "show_rssi\n";
+    my $res = rn171::show_rssi( $self );
+    return $res->[0]{ packa };
 }
 
 sub get_status_via_wifi {
@@ -165,10 +168,10 @@ sub send_stdout {
     my $self = shift;
     my $stdin ;
     while( 1 ) {
-        print "Wait for input\n";
+        Log::log_info "Wait for input\n";
         $stdin = <>;
-        print rn171::send_message_from( $self, $stdin, 1 );
-        print "ready\n";
+        Log::log_info rn171::send_message_from( $self, $stdin, 1 );
+        Log::log_info "ready\n";
     }
 }
 
@@ -182,12 +185,12 @@ sub execute_command{
 
     rn171::send_command_to_relay( $self );
     $self->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
-    print "act running masters: " . ( join ",", @{ $params->{ act_running_masters } || [] }) . "\n";
+    Log::log_info "act running masters: " . ( join ",", @{ $params->{ act_running_masters } || [] }) . "\n";
     if ( $params->{  master_enabled } ) {
-        print "Masters should follow me: " . $self->NAME() . "\n";
+        Log::log_info "Masters should follow me: " . $self->NAME() . "\n";
         foreach my $master ( grep{ $_} $self->MASTERS() ) {
             next if !grep{ $master->RELAY_ID() == $_ } @{ $params->{ act_running_masters } || [] } ;
-            print $master->NAME() . " will follow you\n";
+            Log::log_info $master->NAME() . " will follow you\n";
             $master->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
             $master->RUN_STATUS_ID( $self->RUN_STATUS_ID() );
             rn171::send_command_to_relay( $master );

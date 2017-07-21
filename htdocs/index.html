@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title></title>
   <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css">
+  <link rel="stylesheet" type="text/css" href="style.css">
   <script src="http://code.jquery.com/jquery-1.9.1.js"></script>
   <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
   <script type="text/javascript" src="js/Cookie.js"></script>
@@ -23,10 +24,15 @@
 <div id="error">
 </div>
 
+<div id="message_box" title="Töltés">
+    <p></p>
+</div>
+
 <div id="tabs">
   <ul>
     <li><a href="#tabs-1">Programok</a></li>
     <li><a href="#tabs-2">Relék</a></li>
+    <li><a href="#tabs-3">Státuszok</a></li>
   </ul>
   <div id="tabs-1">
 	<div id="new_relay" style="width:260px; margin:15px;">
@@ -39,15 +45,15 @@
 	</div>
     <div id="lists">
 	</div>
-	
-	<div id="toolbar" style="display: none;">
-	  <button id="play">play</button>
-	  <button id="stop">stop</button>
-	</div>
-	<input id="repetition_time" type="input" name="repetition_time" style="display: none;">
-	<input id="program_name"    type="input" name="program_name" style="display: none;">
-	<img id="save_prog_data"    src="img/save.png"  style="display: none;" onclick = "save_program();" >
-	<div id="actual_program"   style="width:600px; margin:15px;">
+	<div id="program_data" style="display: none;">
+        <div id="toolbar" style="display: none;">
+          <button id="play">play</button>
+          <button id="stop">stop</button>
+        </div>
+        Ismétlési idő: <input id="repetition_time" type="input" name="repetition_time" style="display: none;"><br>
+        Program neve:  <input id="program_name"    type="input" name="program_name" style="display: none;"><br>
+        <img id="save_prog_data"    src="img/save.png"  style="display: none;" onclick = "save_program();" >
+    	<div id="actual_program"   style="width:600px; margin:15px;"></div>
 	</div>
   </div>
   <div id="tabs-2">
@@ -55,6 +61,10 @@
        <table border="1" id="on_off">
        </table>
 	</div>
+  </div>
+  <div id="tabs-3">
+    <div id="relay_and_rpi_status" style="width:300px; margin:15px;">
+    </div>
   </div>
 </div>
 
@@ -64,6 +74,12 @@
     update_method();
     $(function() {
       $( "#tabs" ).tabs();
+      window.dialog = $( "#message_box" ).dialog({
+    	  autoOpen: false,
+          height: 400,
+          width: 350,
+          modal: true,
+      });
     });
   </script>
 </html>

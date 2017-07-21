@@ -7,9 +7,10 @@ use program     ;
 use relay       ;
 use run_status  ;
 use connections ;
-use Errormsg       ;
+use Errormsg    ;
 use Log         ;
 use OBJECTS     ;
+use rn171       ;
 use feature qw(state);
 use DBDispatcher qw( convert_sql );
 use English qw' -no_match_vars ';
@@ -18,6 +19,7 @@ use File::Slurp;
 our @ISA = qw( prog_relay program relay run_status Errormsg connections OBJECTS) ;
 
 our $VERSION = '0.02';
+my $no_stdout = 1;
 
 sub new {
     my ($class) = shift;
@@ -32,6 +34,39 @@ sub init {
     my $self = shift;
     $self->{ $_ } = $_[ 0 ]->{ $_ } for qw(DB_HANDLE DB_Session);
     return $self;
+}
+
+sub get_all_status {
+    my $self = shift;
+    my $result = {};
+    my @relays = map{
+        relay->new( {
+            ip                    => $_->{ ip } ,
+            connect_retry         => 1,
+            ping_retry            => 1,
+            name                  => $_->{ name },
+            not_to_connect_master => 1,
+        } );
+    } @{ $self->get_relay_list() } ;
+
+    my $ping_res;
+    my $duration;
+    foreach my $relay ( @relays ) {
+        ($ping_res, $duration) = rn171::_ping( $relay, $no_stdout );
+        my $status = ( $ping_res ? $relay->get_status_via_wifi() : 0 );
+        my $rssi = $ping_res ? $relay->show_rssi() : -100;
+        $rssi =~/(-\d+)/m;
+        $rssi = $1;
+
+        $result->{ $relay->IP() }->{ $relay->NAME() } = {
+            ping => $ping_res ,
+            rssi => $rssi ,
+            run  => $status,
+            dur  => $duration,
+        };
+    }
+    $self->start_time( @{ [ caller(0) ] }[3], $result );
+    return $result;
 }
 
 sub init_objects{
@@ -68,8 +103,8 @@ sub execute_command{
     my $self            = shift;
     state $ping_cnt     = 0;
     my $is_running_prog = 0;
-
-    foreach my $program ( $self->PROGRAM_LIST() ) {
+    my @program_list = $self->PROGRAM_LIST();
+    foreach my $program ( @program_list ) {
         $program->force_relay_stop_if_program_is_not_set_properly();
 
         if ($program->its_time_for_the_execution() ) {
@@ -90,7 +125,6 @@ sub execute_command{
     }
     if( ( $ping_cnt ) % 4 == 3 ) {
         foreach my $relay ( $self->RELAYS() ) {
-            #$relay->update_connected( rn171::_ping($relay) );
         }
     }
     $ping_cnt++;

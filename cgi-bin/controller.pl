@@ -17,6 +17,7 @@ use Controller_ajax;
 use Data::Dumper ;
 use rn171;
 
+$ENV{ ENABLE_STDOUT } = 0;
 
 $SIG{INT} = sub {
     rn171::STOPCONNECTIONS();

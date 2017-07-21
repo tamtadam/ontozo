@@ -56,6 +56,7 @@ function Relay_in_program( relay_data ){
         var ret_val = processor( send_cmd()) ;
     }
     this.save_data_to_db = function( save_data, success_callback, error_callback ){
+    	msg();
         push_cmd("update_relay_prog_data_to_db", JSON.stringify( save_data ), success_callback, error_callback ) ;
         processor( send_cmd( ASYNC ) ) ;
     }
@@ -73,18 +74,18 @@ function get_relays_in_programs(){
 
 function removerelay_from_program( relay, program ){
     remove_by_id( relay.get_id() + "_relay" ) ;
-    return;
+
     $.grep( G_RELAYS_IN_PROGRAM, function(item, i) {
     	return item.get_relay_id() == relay.get_id() && item.get_program_id() == program.get_id()
     } ).forEach( function( item ) {
     	item.remove_relay_in_program();
     } );
-
     get_relays_in_programs();
+    open_program();
 }
 
 function print_relay_in_program( relays_in_program ){
-    var new_relay_div = create_div( { "id" : relays_in_program.get_relay_id() + "_relay" } ) ;
+    var new_relay_div = create_div( { "id" : relays_in_program.get_relay_id() + "_relay", class : 'bordered' } ) ;
     var new_slid_div  = create_div( { "id" : relays_in_program.get_program_id() + relays_in_program.get_relay_id() + "_slider" }  ) ;
     var p             = create_h6( relays_in_program.get_relay_id() + "_p" ) ;
     var conn          = create_h6( relays_in_program.get_relay_id() + "_prog_conn" ) ;
@@ -111,8 +112,11 @@ function print_relay_in_program( relays_in_program ){
     $( new_relay_div ).append( conn ) ;
     $( new_relay_div ).append( new_slid_div ) ;
     $( new_relay_div ).append( remove_relay ) ;
-
+    var h3 = create_h3();
+    $(h3).html(  relay.get_name() );
+    $( "#actual_program" ).append( h3 ) ;
     $( "#actual_program" ).append( new_relay_div ) ;
+    $( "#actual_program" ).accordion("refresh");
 
     G_RELAYS.print_connections( relay, relay.get_id() + "_prog_conn" ) ;
 
@@ -126,11 +130,13 @@ function print_relay_in_program( relays_in_program ){
     	  p.innerHTML = relay.get_name() + ":  " + String(  ui.values[ 0 ] ).toHHMM() + " " + String( ui.values[ 1 ] ).toHHMM()  ;
       } ,
       stop: function( event, ui ) {
+      	msg();
         relays_in_program.set_start( ui.values[ 0 ] ) ;
         relays_in_program.set_stop( ui.values[ 1 ] ) ;
         var relay = $( this ).data('data').relay ;
         var program = $( this ).data('data').program ;
-        p.innerHTML = relay.get_name() + ":  " + String(  relays_in_program.get_start() ).toHHMM() + " " + String( relays_in_program.get_stop() ).toHHMM()  ;
+        p.innerHTML = relay.get_name() + ":  " + String(  relays_in_program.get_start() ).toHHMM() + " - " + String( relays_in_program.get_stop() ).toHHMM()  ;
+        $( p ).parent().prev().html( p.innerHTML ) ;
         var selected_program  = document.getElementById("program_list").value ;
         //G_RELAYS_IN_PROGRAM[ i ].get_program_id() == selected_prog
 	    for( var cnt = 0; cnt < G_RELAYS_IN_PROGRAM.length; cnt++ ){
@@ -208,13 +214,13 @@ function print_available_relays(){
 }
 
 function open_program( option ){
-    $( "#toolbar" ).show() ;
-    $( "#repetition_time" ).show() ;
-    $( "#program_name" ).show() ;
-    $( "#save_prog_data" ).show() ;
+	$.each(['program_data', 'toolbar', 'repetition_time', 'program_name', 'save_prog_data'], function(i,n){
+		$( '#' + n ).show();
+	});
 
     $( "#actual_program" ).html( "" ) ;
-    var program = $( this ).find( ':selected' ).data( 'data' ) ;
+    $( "#actual_program" ).accordion({ collapsible: true });
+    var program = $( '#program_list' ).find( ':selected' ).data( 'data' ) ;
     $( "#repetition_time" ).val( program.get_repetition_time() ) ;
     $( "#program_name" ).val( program.get_name() ) ;
 

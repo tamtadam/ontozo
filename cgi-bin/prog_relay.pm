@@ -75,6 +75,7 @@ sub refresh_from_db{
 
 sub force_relay_stop_if_program_is_not_set_properly {
     my $self = shift;
+    print "Force hard stop of " . $self->PROGRAM()->NAME() . "\n";
 
     if( $self->PROGRAM->RUN_STATUS_ID != $self->PROGRAM->ACT_STATUS_ID ) {
         if( $self->PROGRAM->RUN_STATUS_ID == run_status->STOPPED ){

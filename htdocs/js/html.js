@@ -1,7 +1,14 @@
 function create_div( divdata ) {
     var div   = document.createElement("div");
+    if( typeof divdata == "undefined" ) {
+    	return div ;
+    }
+
     div.id    = divdata[ "id" ];
     div.style = divdata[ "style" ];
+    if ( divdata[ "class" ] ) {
+    	$( div ).addClass( divdata[ "class" ] );
+    }
     return div;
 }
 

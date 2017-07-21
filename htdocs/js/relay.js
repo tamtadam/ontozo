@@ -129,7 +129,7 @@ Relays.prototype.print_connections = function( relay, html_id ){
 		h1 = create_h4( 'connected_' + connected_relay.get_id() ) ;
 		h1.innerHTML = connected_relay.get_name();
 		
-		remove_btn = create_button_as_img( "delete_connection" +  connected_relay.get_id(), function(){
+		remove_btn = create_button_as_img( null, function(){
 			delete_connection( $( this ).data( 'data' ), $(this).parent().parent().data( 'data' ) );
 		    G_RELAYS.print_connections( $(this).parent().parent().data( 'data' ), $(this).parent().parent().data( 'data' ).get_id() + "_connections" );
 		}, "delete", "img/clear.png" ) ;
@@ -251,7 +251,7 @@ function Relay( relay_data ){
 
     this.save_relay_data_to_db = function( save_data ){
         save_data.id = this.get_id() ;
-
+    	msg();
         push_cmd("save_relay_data_to_db", JSON.stringify( save_data ) ) ;
 	    var ret_val = processor( send_cmd() ) ;
 
@@ -471,11 +471,13 @@ function create_on_off_for_relay(){
     }
     if( accordion_mc == null ) {
     	accordion_mc = $( "#manual_control" ).accordion({
-    		collapsible: true
+    		collapsible: true,
+    		heightStyle: "content"
     	});
     } else {
     	accordion_mc.accordion( "destroy" );
     	accordion_mc = $( "#manual_control" ).accordion({
+    		heightStyle: "content",
     		collapsible: true
     	});
     }
