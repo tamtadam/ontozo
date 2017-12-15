@@ -113,7 +113,7 @@ function print_relay_in_program( relays_in_program ){
     $( new_relay_div ).append( new_slid_div ) ;
     $( new_relay_div ).append( remove_relay ) ;
     var h3 = create_h3();
-    $(h3).html(  relay.get_name() );
+    $(h3).html( relay.get_name() + ":  " + String(  relays_in_program.get_start() ).toHHMM() + " - " + String( relays_in_program.get_stop() ).toHHMM() );
     $( "#actual_program" ).append( h3 ) ;
     $( "#actual_program" ).append( new_relay_div ) ;
     $( "#actual_program" ).accordion("refresh");

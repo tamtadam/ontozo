@@ -4,8 +4,6 @@ use Data::Dumper;
 use OBJECTS;
 use Time::gmtime;
 our @ISA = qw( OBJECTS ) ;
-use HTTP::Date;
-
 
 sub _update_timestamp_in_table{
     my $self    = shift;

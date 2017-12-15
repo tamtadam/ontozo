@@ -1,4 +1,4 @@
-#!C:\Perl64\bin\perl.exe
+#!/usr/bin/perl
 
 use strict;
 use warnings;
@@ -16,8 +16,14 @@ use View_ajax;
 use Controller_ajax;
 use Data::Dumper ;
 use rn171;
+use Log;
 
-$ENV{ ENABLE_STDOUT } = 0;
+sleep( 40 );
+
+Log::init_log_path( $OSNAME =~/win/i ? "f:\\xampp\\cgi-bin\\log\\" : "/var/www/cgi-bin/log/" );
+
+$ENV{ STDOUT_REDIRECT } = 1;
+$ENV{ ENABLE_STDOUT } = 1;
 
 $SIG{INT} = sub {
     rn171::STOPCONNECTIONS();
@@ -32,14 +38,15 @@ $SIG{KILL} = sub {
     rn171::STOPCONNECTIONS();
     exit;
 };
-my $relay_db = &DBConnHandler::init( "server.cfg" );
 
-my $ajax       = View_ajax->new()      ;
+my $cfg = ( $OSNAME =~/win/i ? '' : '/var/www/cgi-bin/' ) . 'server.cfg' ;
+my $relay_db = &DBConnHandler::init( $cfg );
+
+my $ajax = View_ajax->new();
+
 my $controller = Controller_ajax->new( {
-                                        'DB_HANDLE'   => $relay_db ,
-                                        'MODEL'       => "Modell_ajax",
-                                        'LOG_DIR'     => "..\\log\\",
-                                        'STDOUTREDIR' =>  1
+    'DB_HANDLE'   => $relay_db ,
+    'MODEL'       => "Modell_ajax",
 } );
 
 my $cnt = 0;
@@ -47,10 +54,10 @@ my $cnt = 0;
 $controller->init_objects();
 
 while(1){    print "###################################\n";
-    print "Round:" . $cnt++ . "\n";
-    print scalar localtime . "\n";
+    Log::log_info "Round:" . $cnt++ . "\n";
+    Log::log_info scalar localtime . "\n";
     $controller->check_status_of_objects();
     $controller->execute_command();
-    sleep(1);
+    sleep(5);
 }
 

@@ -11,6 +11,7 @@ use Errormsg    ;
 use Log         ;
 use OBJECTS     ;
 use rn171       ;
+use rn171 qw($rn171);
 use feature qw(state);
 use DBDispatcher qw( convert_sql );
 use English qw' -no_match_vars ';
@@ -36,39 +37,6 @@ sub init {
     return $self;
 }
 
-sub get_all_status {
-    my $self = shift;
-    my $result = {};
-    my @relays = map{
-        relay->new( {
-            ip                    => $_->{ ip } ,
-            connect_retry         => 1,
-            ping_retry            => 1,
-            name                  => $_->{ name },
-            not_to_connect_master => 1,
-        } );
-    } @{ $self->get_relay_list() } ;
-
-    my $ping_res;
-    my $duration;
-    foreach my $relay ( @relays ) {
-        ($ping_res, $duration) = rn171::_ping( $relay, $no_stdout );
-        my $status = ( $ping_res ? $relay->get_status_via_wifi() : 0 );
-        my $rssi = $ping_res ? $relay->show_rssi() : -100;
-        $rssi =~/(-\d+)/m;
-        $rssi = $1;
-
-        $result->{ $relay->IP() }->{ $relay->NAME() } = {
-            ping => $ping_res ,
-            rssi => $rssi ,
-            run  => $status,
-            dur  => $duration,
-        };
-    }
-    $self->start_time( @{ [ caller(0) ] }[3], $result );
-    return $result;
-}
-
 sub init_objects{
     my $self = shift;
     my $programs = program->new()->get_program_list();
@@ -89,6 +57,22 @@ sub get_stdout {
     my @text = read_file( $self->get_stdout_log_path() ) ;
 
     return { text => \@text };
+}
+
+sub get_all_status {
+    my $self = shift;
+    my $res = $self->my_select( {
+        'from'   => 'v_relay_params_detailed' ,
+        'select' => 'ALL'
+    } );
+    my $ordered = {};
+
+    for my $db_row ( @{ $res } ) {
+        $ordered->{ $db_row->{ 'relay_name' }  }{ $db_row->{ 'name' } } = $db_row->{ 'value' };
+        $ordered->{ $db_row->{ 'relay_name' }  }{ 'timestamp' } = $db_row->{ 'last_update' };
+    }
+
+    return $ordered;
 }
 
 sub check_status_of_objects{
@@ -114,18 +98,17 @@ sub execute_command{
         };
     }
     if ($is_running_prog == 0) {
-        print "N O   R U N N I N G   P R O G R A M ,   I T S   T I M E   O F   F R E E   E X E C U T I O N\n";
+        Log::log_info "N O   R U N N I N G   P R O G R A M ,   I T S   T I M E   O F   F R E E   E X E C U T I O N\n";
         foreach my $relay ( $self->RELAYS() ) {
-            print "\n*******\nHANDLING: " . $relay->NAME() . "\n";
+            Log::log_info "\n*******\nHANDLING: " . $relay->NAME() . "\n";
             $relay->check_for_update();
             $relay->execute_command( {
                 master_enabled => 1
             } );
         }
     }
-    if( ( $ping_cnt ) % 4 == 3 ) {
-        foreach my $relay ( $self->RELAYS() ) {
-        }
+    foreach my $relay ( $self->RELAYS() ) {
+        $relay->save_health_status();
     }
     $ping_cnt++;
 }

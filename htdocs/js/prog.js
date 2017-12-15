@@ -10,22 +10,19 @@ function get_all_status() {
     push_cmd( "get_all_status", JSON.stringify( new Object( { 'get' : 1 } ) ), function(data) {
     	var status_container = $( '#relay_and_rpi_status' );
     	status_container.html( "" );
-    	for ( var ip in data ) {
+    	for ( var name in data ) {
     		var relay = create_div();
-    		
-    		for ( pos in data[ ip ] ) {
-    			var title = create_h3();
-    			$( title ).html( pos );
-    			var content = create_h5();
-    			var str = "";
-
-    			for( var param in data[ ip ][ pos ] ) {
-    				str += param + ": " + data[ ip ][ pos ][ param ] + '</br>';
-    			}
-    			$( content ).html( str );
-    			status_container.append( title );
-    			status_container.append( content );
+			var title = create_h3();
+			$( title ).html( name );
+			var content = create_h5();
+			var str = "";
+			
+    		for ( pos in data[ name ] ) {
+    			str += pos + ": " + data[ name ][ pos ] + '</br>';
     		}
+			$( content ).html( str );
+			status_container.append( title );
+			status_container.append( content );
     	}
     } ) ;
     ret_val = processor( send_cmd( true ) ) ;
@@ -180,10 +177,13 @@ function update_method(){
 	    get_relay_list() ;
 	    get_program_list();
 	    get_relays_in_programs() ;
-	    get_all_status();
 	    G_RELAYS = new Relays( RELAYS, CONNECTIONS );
 	    G_PROGRAMS = new Programs( programs );
 	    $( document ).ready( create_on_off_for_relay() ) ;
-
 	}, 60000);
+
+	setInterval(function(){
+	    get_all_status();
+	}, 120000);
+
 }

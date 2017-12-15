@@ -29,7 +29,7 @@ sub new {
 sub init {
     my $self = shift;
     my $param = shift // {};
-    print "INIT\n";
+    Log::log_info "INIT\n";
     if( $param->{ 'program_id' } ){
         delete $self->{ $_ } foreach keys %{ $self };
         my $relays_in_prog = $self->my_select({
@@ -58,7 +58,7 @@ sub refresh_from_db{
     if( $self->PROGRAM->RUN_STATUS_ID == run_status->RUNNING ) {
         foreach my $relay ( $self->RELAYS() ) {
             if( $relay->check_for_update() ) {
-                print "Relay updated: " . $relay->NAME() . "\n";
+                Log::log_info "Relay updated: " . $relay->NAME() . "\n";
                 #$self->relay_is_stopped_stop_program( $relay );
                 $updated = 1;
             }
@@ -66,7 +66,7 @@ sub refresh_from_db{
     }
 
     if( $self->PROGRAM->check_for_update() ) {
-        print "Program updated: " . $self->PROGRAM->NAME() . "\n";
+        Log::log_info "Program updated: " . $self->PROGRAM->NAME() . "\n";
         $self->init( { 'program_id' => $self->PROGRAM->PROGRAM_ID } );
         $updated = 1;
     }
@@ -75,11 +75,11 @@ sub refresh_from_db{
 
 sub force_relay_stop_if_program_is_not_set_properly {
     my $self = shift;
-    print "Force hard stop of " . $self->PROGRAM()->NAME() . "\n";
+    Log::log_info "Start checking force hard stop of " . $self->PROGRAM()->NAME() . "\n";
 
     if( $self->PROGRAM->RUN_STATUS_ID != $self->PROGRAM->ACT_STATUS_ID ) {
         if( $self->PROGRAM->RUN_STATUS_ID == run_status->STOPPED ){
-            print $self->PROGRAM->NAME . "<--- program is STOPPED\nExecute it on the other relays\n";
+            Log::log_info $self->PROGRAM->NAME . "<--- program is STOPPED\nExecute it on the other relays\n";
             foreach my $relay ( $self->RELAYS() ) {
                 $relay->update_status( run_status->STOPPED() );
                 $relay->execute_command( {
@@ -113,10 +113,10 @@ sub its_time_for_the_execution {
 
         my $diff = $now - $time_of_last_start;
         $diff = int $diff->days();
-        print "localtime: " . $now . "\n";
-        print "time_of_last_start: " . $time_of_last_start . "\n";
-        print "diff days: $diff\n";
-        print "rep      : " . $self->PROGRAM->REPETITION_TIME() . "\n";
+        Log::log_info "localtime: " . $now . "\n";
+        Log::log_info "time_of_last_start: " . $time_of_last_start . "\n";
+        Log::log_info "diff days: $diff\n";
+        Log::log_info "rep      : " . $self->PROGRAM->REPETITION_TIME() . "\n";
 
         if ( $self->PROGRAM->ACT_STATUS_ID == run_status->RUNNING ) {
             if( $diff >= $self->PROGRAM->REPETITION_TIME() ) {
@@ -131,7 +131,7 @@ sub its_time_for_the_execution {
                 return 1;
 
             } else {
-                return 0;   
+                return 0;
 
             }
             return 1;
@@ -145,23 +145,23 @@ sub its_time_for_the_execution {
 
 sub execute_relays_in_program{
     my $self = shift;
-    print "ACTIVE program:" . $self->PROGRAM->NAME . "\n";
+    Log::log_info "ACTIVE program:" . $self->PROGRAM->NAME . "\n";
     my $status_changed = 0;
     state $act_running_masters = {};
     state $actual_running_relay;
     foreach my $relay ( $self->RELAYS() ) {
-        print "\n*******\nHANDLING: " . $relay->NAME() . "\n";
-        print "run status id: " . $relay->RUN_STATUS_ID() . "\n";
-        print "act status id: " . $relay->ACT_STATUS_ID() . "\n";
-        print "act masters:" . ( join " - " , keys %{$act_running_masters || {} } ) . "\n";
-        print "act relay_id:" . ( $actual_running_relay || 'N/A' ) . "\n";
-        
+        Log::log_info "\n*******\nHANDLING: " . $relay->NAME() . "\n";
+        Log::log_info "run status id: " . $relay->RUN_STATUS_ID() . "\n";
+        Log::log_info "act status id: " . $relay->ACT_STATUS_ID() . "\n";
+        Log::log_info "act masters:" . ( join " - " , keys %{$act_running_masters || {} } ) . "\n";
+        Log::log_info "act relay_id:" . ( $actual_running_relay || 'N/A' ) . "\n";
+
         $relay->check_for_update();
         if ( $relay->is_act_time_between_start_stop() ) {
             if( $relay->get_status_via_wifi() != 1
                 #$relay->RUN_STATUS_ID() != run_status->RUNNING ||
                  ) {
-                print "START relay:" . $relay->NAME . "\n";
+                Log::log_info "START relay:" . $relay->NAME . "\n";
                 $relay->update_status( run_status->RUNNING, { db_store => 0 } );
 
                 @{ $act_running_masters }{ @{ $relay->get_master_list() } } = ();
@@ -179,7 +179,7 @@ sub execute_relays_in_program{
             if ( #$self->PROGRAM->RUN_STATUS_ID == run_status->RUNNING &&
                  $relay->get_status_via_wifi() != 0
             ) {
-                print "STOP relay: " . $relay->NAME . "\n";
+                Log::log_info "STOP relay: " . $relay->NAME . "\n";
                 #if ( !$actual_running_relay || $actual_running_relay == $relay->RELAY_ID() ) {
                 #    $act_running_masters = [];
                 #}
@@ -200,7 +200,7 @@ sub relay_is_stopped_stop_program {
     my $self = shift;
     my $stop = 0;
     my $relay = shift;
-    print "Program is stopped based on stopped relay:" . $self->PROGRAM->NAME . "\n";
+    Log::log_info "Program is stopped based on stopped relay:" . $self->PROGRAM->NAME . "\n";
     $self->PROGRAM->update_status( run_status->STOPPED );
     $self->PROGRAM->init( { program_id => $self->PROGRAM->PROGRAM_ID } );
     $stop = 1;

@@ -10,7 +10,7 @@ use relay_utils     ;
 use Carp            ;
 use rn171 qw($rn171);
 use List::Util qw(first max maxstr min minstr reduce shuffle sum);
-
+use feature qw( state );
 our @ISA = qw( DBH relay_utils Log run_status );
 
 our $VERSION = '0.02';
@@ -68,7 +68,7 @@ sub init {
 
     } else {
 
-        foreach ( qw( ip port connect_retry autoconn ping_retry name) ) {
+        foreach ( qw( ip port connect_retry autoconn ping_retry name ping_give_up just_connect ) ) {
             if( exists $relay_params->{ $_ } ) {
                 $self->add_autoload_method( uc $_, $relay_params->{ $_ } );
             }
@@ -152,15 +152,90 @@ sub get_connections{
 sub show_rssi {
     my $self = shift;
     Log::log_info "show_rssi\n";
-    my $res = rn171::show_rssi( $self );
-    return $res->[0]{ packa };
+    my $res = $rn171->show_rssi( $self );
+    return ref $res ? $res->[0]{ packa } : $res;
+}
+
+sub save_health_status {
+    my $self = shift;
+    $self->start_time( @{ [ caller(0) ] }[3], \@_ ) ;
+
+    my ($ping_res, $duration) = $rn171->_ping( $self );
+    my $status = ( $ping_res ? $self->get_status_via_wifi() : 0 );
+    my $rssi = $ping_res ? $self->show_rssi() : -100;
+    $rssi =~/(-\d+)/m;
+    $rssi = $1;
+
+    my @to_store = (
+        {
+            id    => 'RSSI',
+            value => $rssi
+        },
+        {
+            id    => 'DURATION',
+            value => $duration
+        },
+        {
+            id    => 'PING',
+            value => $ping_res
+        },
+        {
+            id    => 'ACT_STATUS',
+            value => $status
+        }
+    );
+
+    foreach my $store_item ( @to_store ) {
+        my $param_id = $store_item->{ 'id' } ;
+        my $id = $self->my_select_insert({
+            table => 'params_relay',
+            data  => {
+                relay_id     => $self->RELAY_ID,
+                params_id    => $self->db_params->$param_id ,
+            },
+            selected_row => 'params_relay_id'
+        });
+
+        $self->my_update({
+            table  => "params_relay",
+            update => {
+                value         => $store_item->{ 'value' },
+                last_modified => $self->time_to_db()
+            },
+            where => {
+                params_relay_id => $id ,
+            }
+        });
+    }
+
+=pod
+    SELECT
+    *
+    FROM (
+    SELECT
+        pr.params_id AS params_relay_id,
+        pr.value     AS value,
+        pr.timestamp AS timestamp,
+        r.name       AS name,
+        r.ip         AS ip
+    FROM params_relay AS pr
+    JOIN relay AS r  ON ( pr.relay_id = r.relay_id ) ) AS prr
+    JOIN params AS p ON ( prr.params_relay_id = p.params_id  ) ;
+
+=cut
+#    {
+#        ping => $ping_res ,
+#        rssi => $rssi ,
+#        run  => $status,
+#        dur  => $duration,
+#    };
 }
 
 sub get_status_via_wifi {
     my $self = shift;
     my $pos = $self->POS() || return;
 
-    my $status = rn171::get_status( $self );
+    my $status = $rn171->get_status( $self );
     return $status;
 };
 
@@ -170,7 +245,7 @@ sub send_stdout {
     while( 1 ) {
         Log::log_info "Wait for input\n";
         $stdin = <>;
-        Log::log_info rn171::send_message_from( $self, $stdin, 1 );
+        Log::log_info $rn171->send_message_from( $self, $stdin, 1 );
         Log::log_info "ready\n";
     }
 }
@@ -183,7 +258,7 @@ sub execute_command{
     my $self = shift;
     my $params = shift || {};
 
-    rn171::send_command_to_relay( $self );
+    $rn171->send_command_to_relay( $self );
     $self->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
     Log::log_info "act running masters: " . ( join ",", @{ $params->{ act_running_masters } || [] }) . "\n";
     if ( $params->{  master_enabled } ) {
@@ -193,7 +268,7 @@ sub execute_command{
             Log::log_info $master->NAME() . " will follow you\n";
             $master->ACT_STATUS_ID( $self->RUN_STATUS_ID() );
             $master->RUN_STATUS_ID( $self->RUN_STATUS_ID() );
-            rn171::send_command_to_relay( $master );
+            $rn171->send_command_to_relay( $master, 1 );
         }
     }
 

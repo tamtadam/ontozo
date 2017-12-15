@@ -45,18 +45,13 @@ sub connect{
        Log::log_info "ip  : " . $self->{ 'host' } . "\n";
        Log::log_info "port: " . $self->{ 'port' } . "\n";
        $self->{'socket_m'} =  new IO::Socket::INET(
-            		   PeerAddr => $self->{ 'host' } ,
-      				   PeerPort => $self->{ 'port' } ,
-      				   Reuse    => 1                 ,
-      				   Timeout  => 1                 ,
-      				   Proto    => 'tcp') or Log::log_info "CONNECTION ERROR: $cnt\n";
+                       PeerAddr   => '192.168.0.200:2000',
+      				   Proto    => ( $self->{ 'proto' } ? $self->{ 'proto' } : 'tcp' ) ) or Log::log_info "CONNECTION ERROR: $cnt\n";
        $cnt++;
        sleep( 2 );
    }
 
    unless( $self->{'socket_m'} ) {
-       Log::log_info "IO::SOCKET::INET failed\n";
-       Log::log_info "Start Reconnection procedure\n";
        $self->init_reconnect();
    }
 
@@ -78,7 +73,7 @@ sub send_msg{
     my $with_recv = shift ;
 
     if( !$self->test_connection() ) {
-        warn Dumper $!;
+        Log::log_info Dumper $!;
         Log::log_info "Start Reconnection procedure\n";
         $self->init_reconnect();
         return; # trigger reconnect
@@ -87,7 +82,7 @@ sub send_msg{
     my $rv  = $self->{'socket_m' }->send( "$msg\r\n"); # "\r\n"
 
     if ( $self->{ autoconn } && (!defined $rv or $rv == 0 or $rv == -1 ) ){
-        warn Dumper $!;
+        Log::log_info Dumper $!;
         Log::log_info "Start Reconnection procedure\n";
         $self->init_reconnect();
         return; # trigger reconnect
@@ -108,6 +103,8 @@ sub test_connection {
 }
 
 sub init_reconnect {
+    Log::log_info Dumper $! . "\n";
+    Log::log_info "Start Reconnection procedure\n";
     my $self = shift;
     $self->my_close();
     $self->connect() ;
@@ -121,8 +118,6 @@ sub my_recv{
     my @ready = $select->can_read(4);
 
     unless( $self->test_connection() ) {
-        warn Dumper $!;
-        Log::log_info "Start Reconnection procedure\n";
         $self->init_reconnect();
         return; # trigger reconnect
     }
@@ -145,18 +140,16 @@ sub my_recv{
             return ($msg, $packs);
 
         } else {
-            warn $!;
-            Log::log_info "Start Reconnection procedure\n";
             $self->init_reconnect();
             return;
         }
 
     } else {
-        Log::log_info "SELECT TIMEOUT\n";
-        warn $!;
-        Log::log_info "Start Reconnection procedure\n";
-        $self->init_reconnect();
-        return;
+        #Log::log_info "SELECT TIMEOUT\n";
+        #warn $!;
+        #Log::log_info "Start Reconnection procedure\n";
+        #$self->init_reconnect();
+        return 'NOTHING TO READ FROM THE RELAY';
     }
 }
 
